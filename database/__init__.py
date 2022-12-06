@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from createapp import get_app
 
+
 db = None
 
 

@@ -3,7 +3,6 @@ from datetime import datetime
 from app import db
 
 
-
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), nullable=True)
@@ -40,20 +39,20 @@ class AdPlan(db.Model):
 
 class Advertisement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.Text, nullable=False)
+    title = db.Column(db.String(400), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-    status = db.Column(db.String)
-    seller_type = db.Column(db.Text)
+    status = db.Column(db.String(40))
+    seller_type = db.Column(db.String(40))
     description = db.Column(db.Text)
     price = db.Column(db.Float)
     advertising_plan_id = db.Column(db.Integer, db.ForeignKey('ad_plan.id'))
     is_negotiable = db.Column(db.Boolean, default=False, nullable=False)
     is_featured = db.Column(db.Boolean, default=False, nullable=False)
-    location = db.Column(db.String(500))
-    latitude = db.Column(db.Text)
-    longitude = db.Column(db.Text)
-    seller_name = db.Column(db.String(100), )
+    location = db.Column(db.Text)
+    latitude = db.Column(db.String(140))
+    longitude = db.Column(db.String(140))
+    seller_name = db.Column(db.String(100))
     phone = db.Column(db.BigInteger, unique=True, nullable=False)
     email = db.Column(db.String(120), nullable=False)
     advertising_id = db.Column(db.String(100))
