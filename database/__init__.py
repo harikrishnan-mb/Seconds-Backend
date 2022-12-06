@@ -11,6 +11,7 @@ def get_db():
         db = SQLAlchemy(app)
         with app.app_context():
             db.create_all()
+            db.session.commit()
     return db
 
 
