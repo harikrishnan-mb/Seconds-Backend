@@ -3,11 +3,12 @@ from database import get_db
 
 db = get_db()
 
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    hashed_password = db.Column(db.String(60), nullable=False)
+    hashed_password = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow())
 
@@ -15,8 +16,8 @@ class User(db.Model):
     user_profiles = db.relationship('UserProfile', backref='user', uselist=False)
     report_ads = db.relationship('ReportAd', backref='user')
     favourite_ads = db.relationship('FavouriteAd', backref='user')
-    senders = db.relationship('Message', backref='user')
-    receivers = db.relationship('Message', backref='user')
+    # sender = db.relationship('Message', backref='user')
+    # receiver = db.relationship('Message', backref='user')
 
     def __init__(self, username, email, hashed_password):
         self.username = username

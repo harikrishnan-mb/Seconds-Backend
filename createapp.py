@@ -8,5 +8,5 @@ def get_app():
     if not app:
         app = Flask(__name__)
         app.config['DEBUG'] = False
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost/Seconds'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost/seconds'
     return app

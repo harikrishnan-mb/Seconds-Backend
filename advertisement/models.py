@@ -1,6 +1,8 @@
 from user import models
 from datetime import datetime
-from app import db
+from database import get_db
+
+db = get_db()
 
 
 class Category(db.Model):
@@ -63,7 +65,7 @@ class Advertisement(db.Model):
     report_ads = db.relationship('ReportAd', backref='advertisement')
     favourite_ads = db.relationship('FavouriteAd', backref='advertisement')
     ad_images = db.relationship('AdImage', backref='advertisement')
-    messages = db.relationship('Message', backref='advertisement')
+    # messages = db.relationship('Message', backref='advertisement')
 
     def __init__(self, title, status, seller_type, description, price, is_negotiable, is_featured, location, latitude,
                  longitude, seller_name, phone, email, advertising_id, user_id, category_id, advertising_plan_id):
@@ -138,20 +140,20 @@ class FavouriteAd(db.Model):
     def __str__(self):
         return f"Ad  with {self.id} as is add to favourites"
 
-
-class Message(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
-    content = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-
-    def __init__(self, sender_id, receiver_id, ad_id, content):
-        self.sender_id = sender_id
-        self.receiver_id = receiver_id
-        self.content = content
-        self.ad_id = ad_id
-
-    def __str__(self):
-        return f"Message with {self.id} id is send"
+#
+# class Message(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
+#     content = db.Column(db.Text)
+#     created_at = db.Column(db.DateTime, default=datetime.now())
+#
+#     def __init__(self, sender_id, receiver_id, ad_id, content):
+#         self.sender_id = sender_id
+#         self.receiver_id = receiver_id
+#         self.content = content
+#         self.ad_id = ad_id
+#
+#     def __str__(self):
+#         return f"Message with {self.id} id is send"
