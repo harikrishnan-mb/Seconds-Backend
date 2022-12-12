@@ -1,11 +1,13 @@
 from createapp import get_app
 from database import get_db
 from user import register_user_blueprint
+from advertisement import register_ad_blueprint
 
 app = get_app()
 db = get_db()
 
 register_user_blueprint()
+register_ad_blueprint()
 
 from user.models import User, UserProfile
 from advertisement.models import Advertisement, AdImage, AdPlan, ReportAd, FavouriteAd

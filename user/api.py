@@ -108,10 +108,9 @@ def login():
         user_in = User.query.filter_by(username=username).first()
 
         if user_in is None:
-            return {"data": {"error": "username does not exist"}}, 400
+            return {"data": {"error": "username is not correct"}}, 400
         if password == "":
             return {"data": {"error": "provide password"}}, 400
-        # user_in = User.query.filter_by(username=username).first()
         if user_in and not checking_2password(user_in.hashed_password, password):
             return {"data": {"message": "incorrect password"}}, 409
 
@@ -137,7 +136,7 @@ def refresh():
     access_token = create_access_token(identity=identity)
     return {"data": {"access_token": access_token}}
 
-@user.route("/reset_password", methods=["POST"])
+@user.route("/reset_password", methods=["PUT"])
 @jwt_required()
 def reset_password():
     user_id = get_jwt_identity()
@@ -147,6 +146,10 @@ def reset_password():
         current_password = data['current_password']
         new_password = data['new_password']
 
+        if not current_password:
+            return {'data':{'error': "please provide current password"}}
+        if not new_password:
+            return {'data':{'error': "please provide new password"}}
         if not checking_2password(user_a.hashed_password, current_password):
             return {"data": {"error" :"incorrect password"}}, 400
         if not password_check(new_password):
@@ -160,4 +163,33 @@ def reset_password():
             return {"data": {"message": "password changed successfully"}}, 200
     except KeyError:
         return {"data": {"error": "key not found"}}, 400
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
