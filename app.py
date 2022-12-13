@@ -1,21 +1,20 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-import psycopg2
+from createapp import get_app
+from database import get_db
+from user import register_user_blueprint
+from advertisement import register_ad_blueprint
 
-app = Flask(__name__)
+app = get_app()
+db = get_db()
 
-app.config.update(
+register_user_blueprint()
+register_ad_blueprint()
 
-    SECRET_KEY='seconds',
-    SQLALCHEMY_DATABASE_URI='postgresql://postgres:root@localhost/Seconds',
-    SQLALCHEMY_TRACK_MODIFICATIONS=False
-)
-
-db = SQLAlchemy(app)
-@app.route('/home')
-def home():
-    return "Seconds Backend"
+from user.models import User, UserProfile
+from advertisement.models import Advertisement, AdImage, AdPlan, ReportAd, FavouriteAd
+with app.app_context():
+    db.create_all()
+    db.session.commit()
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
