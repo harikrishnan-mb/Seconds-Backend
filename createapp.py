@@ -10,6 +10,7 @@ def get_app():
     if not app:
         app = Flask(__name__)
         app.config['DEBUG'] = False
+        app.config['UPLOAD_FOLDER'] = 'static/catagory'
         app.config["JWT_SECRET_KEY"] = "super!@#$$secret"
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)

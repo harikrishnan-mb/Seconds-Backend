@@ -36,7 +36,7 @@ def signup():
         if User.query.filter_by(email=email_id).first() is not None:
             return {"data":{"error": "email already exists"}}, 409
 
-        user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password))
+        user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
         profile_1 = UserProfile(None, None, None, None, user_id=user_1.id)
 
         db.session.add(user_1)
@@ -108,7 +108,7 @@ def login():
         user_in = User.query.filter_by(username=username).first()
 
         if user_in is None:
-            return {"data": {"error": "username is not correct"}}, 400
+            return {"data": {"error": "username does not exist"}}, 400
         if password == "":
             return {"data": {"error": "provide password"}}, 400
         if user_in and not checking_2password(user_in.hashed_password, password):
@@ -163,6 +163,13 @@ def reset_password():
             return {"data": {"message": "password changed successfully"}}, 200
     except KeyError:
         return {"data": {"error": "key not found"}}, 400
+
+
+
+
+
+
+
 
 
 

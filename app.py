@@ -1,6 +1,7 @@
 from createapp import get_app
 from database import get_db
 from user import register_user_blueprint
+from flask_cors import CORS
 from advertisement import register_ad_blueprint
 
 app = get_app()
@@ -14,7 +15,7 @@ from advertisement.models import Advertisement, AdImage, AdPlan, ReportAd, Favou
 with app.app_context():
     db.create_all()
     db.session.commit()
-
+CORS(app)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='10.6.9.26')
