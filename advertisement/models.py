@@ -55,9 +55,9 @@ class Advertisement(db.Model):
     latitude = db.Column(db.String(140))
     longitude = db.Column(db.String(140))
     seller_name = db.Column(db.String(100))
-    phone = db.Column(db.BigInteger, unique=True, nullable=False)
+    phone = db.Column(db.BigInteger, nullable=False)
     email = db.Column(db.String(120), nullable=False)
-    advertising_id = db.Column(db.String(100))
+    advertising_id = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now())
 
@@ -100,11 +100,10 @@ class AdImage(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now())
     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
 
-    def __init__(self, display_order, file, is_cover_image, advertisement_id, ad_id):
+    def __init__(self, display_order, file, is_cover_image, ad_id):
         self.display_order = display_order
         self.file = file
         self.is_cover_image = is_cover_image
-        self.advertisement_id = advertisement_id
         self.ad_id = ad_id
 
     def __str__(self):

@@ -7,6 +7,7 @@ import bcrypt
 from bcrypt import checkpw
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required
 from flask_jwt_extended import JWTManager
+import messages
 user = Blueprint('user', __name__)
 app = get_app()
 jwt = JWTManager(app)
@@ -20,21 +21,21 @@ def signup():
         username = data['username']
         password = data['password']
         if not email_id:
-            return {"data" :{"error": "email cannot be empty"}}, 400
+            return {"data" :{"error": "email cannot be empty", "error_id": 1005}}, 400
         if not username:
-            return {"data" :{"error": "username cannot be empty"}}, 400
+            return {"data" :{"error": "username cannot be empty", "error_id": 1006}}, 400
         if not password:
-            return {"data":{"error": "password cannot be empty"}}, 400
+            return {"data":{"error": "password cannot be empty", "error_id": 1007}}, 400
         if not check_email(email_id) :
-            return {"data" :{"error": "Please provide a valid email"}}, 400
+            return {"data" :{"error": "Please provide a valid email", "error_id": 1008}}, 400
         if not check_username(username):
-            return {"data" :{"error": "Please provide a valid username"}}, 400
+            return {"data" :{"error": "Please provide a valid username", "error_id": 1009}}, 400
         if not password_check(password):
-            return {"data" :{"error": "Password should contain least 1 number, 1 special symbol, 1 uppercase letter and 1 lowercase letter and maximum length is 20 and minimum length is 8"}}, 400
+            return {"data" :{"error": "Password should contain least 1 number, 1 special symbol, 1 uppercase letter and 1 lowercase letter and maximum length is 20 and minimum length is 8", "error_id": 1010}}, 400
         if User.query.filter_by(username=username).first() is not None:
-            return {"data":{"error": "Username already exists"}}, 409
+            return {"data":{"error": "Username already exists", "error_id": 1011}}, 409
         if User.query.filter_by(email=email_id).first() is not None:
-            return {"data":{"error": "email already exists"}}, 409
+            return {"data":{"error": "email already exists", "error_id": 1012}}, 409
 
         user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
         profile_1 = UserProfile(None, None, None, None, user_id=user_1.id)
@@ -45,7 +46,7 @@ def signup():
         db.session.commit()
         return {"data": {"message": "user created"}}, 200
     except KeyError:
-        return {"data": {"error" : "provide all signup keys"}}
+        return {"data": {"error" : "provide all signup keys","error_id": 1013}}, 400
 
 
 
@@ -68,7 +69,6 @@ def check_email(email):
         return True
     else:
         return False
-
 
 def password_check(passwd):
     special_sym = ['$', '@', '#', '%']
@@ -108,24 +108,24 @@ def login():
         user_in = User.query.filter_by(username=username).first()
 
         if user_in is None:
-            return {"data": {"error": "username does not exist"}}, 400
+            return {"data": {"error": "username does not exist", "error_id": 1001}}, 400
         if password == "":
-            return {"data": {"error": "provide password"}}, 400
+            return {"data": {"error": "provide password", "error_id": 1002}}, 400
         if user_in and not checking_2password(user_in.hashed_password, password):
-            return {"data": {"message": "incorrect password"}}, 409
+            return {"data": {"error": "incorrect password", "error_id": 1003}}, 409
 
         if user_in and checking_2password(user_in.hashed_password, password):
             access_token = create_access_token(identity=user_in.id, fresh=True)
             refresh_token = create_refresh_token(identity=user_in.id)
             return {"data":
-                {"message": "login successful"},
+                {"message": "Login successful"},
                  "tokens":{"access_token": access_token,
                     "refresh_token": refresh_token
 
                 }
                     }, 200
     except KeyError:
-        return {"data": {"error": "provide all login keys"}}, 400
+        return {"data": {"error": "provide all login keys", "error_id": 1004}}, 400
 
 
 
@@ -147,22 +147,22 @@ def reset_password():
         new_password = data['new_password']
 
         if not current_password:
-            return {'data':{'error': "please provide current password"}}
+            return {'data':{'error': "please provide current password", "error_id": 1014}}
         if not new_password:
-            return {'data':{'error': "please provide new password"}}
+            return {'data':{'error': "please provide new password", "error_id": 1015}}
         if not checking_2password(user_a.hashed_password, current_password):
-            return {"data": {"error" :"incorrect password"}}, 400
+            return {"data": {"error" :"incorrect password", "error_id": 1016}}, 400
         if not password_check(new_password):
             return {"data": {"error": "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8"}}, 400
         if current_password==new_password:
-            return {"data": {"error": "new password should not be same as previous password"}}, 400
+            return {"data": {"error": "new password should not be same as previous password", "error_id": 1017}}, 400
         else:
             user_a.hashed_password=hashing_password(new_password)
             db.session.add(user_a)
             db.session.commit()
             return {"data": {"message": "password changed successfully"}}, 200
     except KeyError:
-        return {"data": {"error": "key not found"}}, 400
+        return {"data": {"error": "key not found", "error_id": 1018}}, 400
 
 
 
