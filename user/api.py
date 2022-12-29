@@ -4,6 +4,7 @@ import re
 from user.models import User, UserProfile
 from user.models import db
 import bcrypt
+import os
 from bcrypt import checkpw
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required
 from flask_jwt_extended import JWTManager
@@ -151,9 +152,9 @@ def reset_password():
         if not new_password:
             return {'data':{'error': "please provide new password", "error_id": 1015}}
         if not checking_2password(user_a.hashed_password, current_password):
-            return {"data": {"error" :"incorrect password", "error_id": 1016}}, 400
+            return {"data": {"error" :"incorrect password", "error_id": 1003}}, 400
         if not password_check(new_password):
-            return {"data": {"error": "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8"}}, 400
+            return {"data": {"error": "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8", 'error_id': 1010}}, 400
         if current_password==new_password:
             return {"data": {"error": "new password should not be same as previous password", "error_id": 1017}}, 400
         else:
@@ -163,6 +164,9 @@ def reset_password():
             return {"data": {"message": "password changed successfully"}}, 200
     except KeyError:
         return {"data": {"error": "key not found", "error_id": 1018}}, 400
+
+
+
 
 
 

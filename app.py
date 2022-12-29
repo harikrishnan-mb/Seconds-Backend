@@ -18,4 +18,4 @@ with app.app_context():
 CORS(app)
 
 if __name__ == '__main__':
-    app.run(host='10.6.9.26')
+    app.run(host='10.6.9.26',port=5000)

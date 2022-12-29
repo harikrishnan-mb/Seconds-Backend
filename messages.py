@@ -17,7 +17,8 @@ error_signup_api={"email cannot be empty": 1005,
 #Reset password_api
 reset_password_api={"please provide current password": 1014,
                     "please provide new password": 1015,
-                    "incorrect password": 1016,
+                    "incorrect password": 1003,
+                    "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8": 1010,
                     "new password should not be same as previous password": 1017,
                     "key not found": 1018}
 
