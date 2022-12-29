@@ -5,8 +5,7 @@ from user.api import check_email
 from user.models import User
 from geoalchemy2 import WKTElement
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
-from sqlalchemy import func
+from sqlalchemy import create_engine, func
 from sqlalchemy import or_, and_
 ad=Blueprint('ad',__name__)
 import os
@@ -391,7 +390,6 @@ def view_ad():
         loc_radius=20000
         query=(func.ST_Distance(Advertisement.geo, loc_point) < loc_radius)
         filter_list.append(query)
-        print(filter_list)
 
     #searching
     if "search" in request.args:
@@ -417,6 +415,144 @@ def view_ad():
         ad_filter = {"id": advertisement.id,"title": advertisement.title, "cover image": "http://10.6.9.26:5000" + '/' + ad_images.file, "featured": advertisement.is_featured, "location": advertisement.location, "price": advertisement.price}
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad}}
+
+
+@ad.route("/update_ad/<int:ads_id>", methods=["PUT"])
+@jwt_required()
+def update_ad(ads_id):
+    person = get_jwt_identity()
+    adv=Advertisement.query.filter_by(id=ads_id).first()
+    if adv.user_id==person:
+        category_id = request.form.get("category_id")
+        status = request.form.get("status")
+        images = request.files.getlist('images')
+        title = request.form.get("title")
+        seller_type = request.form.get("seller_type")
+        description = request.form.get("description")
+        price = request.form.get("price")
+        ad_plan_id = request.form.get("ad_plan_id")
+        negotiable_product = request.form.get("negotiable_product")
+        feature_product = request.form.get("feature_product")
+        location = request.form.get("location")
+        latitude = request.form.get("latitude")
+        longitude = request.form.get("longitude")
+        seller_name = request.form.get("seller_name")
+        phone = request.form.get("phone")
+        email_id = request.form.get("email_id")
+        if not category_id:
+            return {"data":{"error": "provide category id"}}
+        for image in images:
+            if image.filename == '':
+                return {"data":{"error": "provide image"}}
+            if image and not allowed_img_file(image.filename):
+                return {"data":{"error": "image should be in png, jpg or jpeg format"}}
+        try:
+            category_id=int(category_id)
+        except ValueError:
+            return {"data": {"error": "provide category id as integer"}}
+        if Category.query.filter_by(id=int(category_id)).first() is None:
+            return {"data": {"error": "category id not found"}}
+        if not title:
+            return {"data": {"error": "provide title"}}
+        if not status:
+            status='active'
+        if not seller_type:
+            return {"data": {"error": "provide seller_type"}}
+        if not description:
+            description=''
+        if not price:
+            return {"data": {"error": "provide price"}}
+        try:
+            price = float(price)
+        except ValueError:
+            return {"data": {"error": "provide price as floating number"}}
+        if not negotiable_product:
+            return {"data": {"error": "provide product is negotiable or not"}}
+        if negotiable_product.capitalize()=="True":
+            negotiable_product=True
+        elif negotiable_product.capitalize()=="False":
+            negotiable_product=False
+        else:
+            return {"data": {"error": "provide product is negotiable or not as True or False"}}
+        if not feature_product:
+            return {"data": {"error": "provide product is featured or not"}}
+        if feature_product.capitalize()=="True":
+            feature_product=True
+        elif feature_product.capitalize()=="False":
+            feature_product=False
+        else:
+            return {"data": {"error": "provide product is featured or not as True or False"}}
+        if not ad_plan_id:
+            return {"data": {"error": "provide advertisement plan id"}}
+        try:
+            ad_plan_id=int(ad_plan_id)
+        except ValueError:
+            return {"data": {"error": "provide advertisement plan id as integer"}}
+        if not AdPlan.query.filter_by(id=ad_plan_id).first():
+            return {"data": {"error": "advertisement plan id not found"}}
+        if not location:
+            return {"data": {"error": "provide location"}}
+        if not latitude:
+            return {"data": {"error": "provide latitude"}}
+        try:
+            latitude = float(latitude)
+        except ValueError:
+            return {"data": {"error": "provide latitude as floating number"}}
+        if not longitude:
+            return {"data": {"error": "provide longitude"}}
+        try:
+            longitude = float(longitude)
+        except ValueError:
+            return {"data": {"error": "provide longitude as floating number"}}
+        if  float(longitude) is False:
+            return {"data": {"error": "provide longitude as floating number"}}
+        if not phone:
+            return {"data":{"error": "provide phone number"}}
+        if not check_phone(phone):
+            return {"data": {"error": "provide valid phone number"}}
+        if not email_id:
+            return {"data": {"error": "provide email"}}
+        if not check_email(email_id):
+            return {"data": {"error": "provide valid email"}}
+
+        geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
+        try:
+            adv.title=title
+            adv.description=description
+            adv.category_id=category_id
+            adv.status=status
+            adv.seller_type=seller_type
+            adv.price=price
+            adv.advertising_plan_id=ad_plan_id
+            adv.is_negotiable=negotiable_product
+            adv.is_featured=feature_product
+            adv.location=location
+            adv.latitude=latitude
+            adv.longitude=longitude
+            adv.seller_name=seller_name
+            adv.phone=phone
+            adv.email=email_id
+            adv.geo=geo
+            ad_images = AdImage.query.filter_by(ad_id=adv.id).all()
+            for ad_image in ad_images:
+                db.session.delete(ad_image)
+            for image in images:
+                display_order = images.index(image) + 1
+                if images.index(image) == 0:
+                    cover_image = True
+                else:
+                    cover_image = False
+                filename = secure_filename(image.filename)
+                image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
+                ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename, is_cover_image=cover_image, ad_id=adv.id)
+                db.session.add(ad_image_1)
+            db.session.commit()
+            return {"data": {"message": "ad edited successfully"}}
+        except:
+            return {"data": {"error": "error uploading image"}}
+    else:
+        return{"data": {"error": "only owner can edit ad"}}
+
 
 
 
