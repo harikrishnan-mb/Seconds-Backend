@@ -1,16 +1,16 @@
-from flask import Blueprint,url_for,request
+from flask import Blueprint,request
 import re
 from advertisement.models import db, Category, Advertisement, AdImage, AdPlan
 from user.api import check_email
 from user.models import User
+from user.api import get_jwt_identity,jwt_required
 from geoalchemy2 import WKTElement
-from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, func
 import os
 import secrets
 import string
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func
 from werkzeug.utils import secure_filename
-from user.api import get_jwt_identity,jwt_required
 from createapp import get_app
 from dotenv import load_dotenv
 load_dotenv()
@@ -33,8 +33,7 @@ def get_every_categories():
         for sub_category in sub_categories:
             sub_category_name = {"id": sub_category.id, "name": sub_category.name}
             sub_categories_list.append(sub_category_name)
-        category_name = {"id": category.id, "name": category.name,
-                         "images": os.getenv("HOME_ROUTE")+category.image, "sub_category": sub_categories_list}
+        category_name = {"id": category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image, "sub_category": sub_categories_list}
         categories_list.append(category_name)
     return {"data": {"message": categories_list}}, 200
 
@@ -193,17 +192,24 @@ def check_phone(phone):
 @jwt_required()
 def delete_ad(del_ad_id):
     person = get_jwt_identity()
-    filter_user = User.query.filter_by(id=person).first()
-    filter_advertisement=Advertisement.query.filter_by(id=del_ad_id).first()
-    if filter_advertisement is None:
+    if del_ad_filter_adv(del_ad_id) is None:
         return {"data": {"error": "ad not found"}}
-    if filter_advertisement.user_id==person:
-        filter_advertisement.is_deleted=True
-        db.session.add(filter_advertisement)
-        db.session.commit()
-        return {"data": {"message": "ad deleted"}}
+    if ad_id_and_person(del_ad_id, person):
+        return delete_ad_person(del_ad_id)
     return {"data": {"error": "invalid request"}}
 
+def ad_id_and_person(del_ad_id, person):
+    return del_ad_filter_adv(del_ad_id).user_id == person
+
+def del_ad_filter_adv(del_ad_id):
+    filter_advertisement = Advertisement.query.filter_by(id=del_ad_id).first()
+    return filter_advertisement
+
+def delete_ad_person(del_ad_id):
+    del_ad_filter_adv(del_ad_id).is_deleted = True
+    db.session.add(del_ad_filter_adv(del_ad_id))
+    db.session.commit()
+    return {"data": {"message": "ad deleted"}}, 200
 
 @ad.route("/create_ad", methods=["POST"])
 @jwt_required()
@@ -226,96 +232,95 @@ def create_ad():
     phone = request.form.get("phone")
     email_id = request.form.get("email_id")
     if not category_id:
-        return {"data":{"error": "provide category id"}}
+        return {"data":{"error": "provide category id"}}, 400
     for image in images:
         if image.filename == '':
-            return {"data":{"error": "provide image"}}
+            return {"data":{"error": "provide image"}}, 400
         if image and not allowed_img_file(image.filename):
-            return {"data":{"error": "image should be in png, jpg or jpeg format"}}
+            return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
     try:
         category_id=int(category_id)
     except ValueError:
-        return {"data": {"error": "provide category id as integer"}}
-    if Category.query.filter_by(id=int(category_id)).first() is None:
-        return {"data": {"error": "category id not found"}}
+        return {"data": {"error": "provide category id as integer"}},400
+    if create_ad_category_db(category_id) is None:
+        return {"data": {"error": "category id not found"}}, 400
     if not title:
-        return {"data": {"error": "provide title"}}
+        return {"data": {"error": "provide title"}}, 400
     if not status:
         status='active'
     if not seller_type:
-        return {"data": {"error": "provide seller_type"}}
+        return {"data": {"error": "provide seller_type"}}, 400
     if not description:
         description=''
     if not price:
-        return {"data": {"error": "provide price"}}
+        return {"data": {"error": "provide price"}}, 400
     try:
         price = float(price)
     except ValueError:
-        return {"data": {"error": "provide price as floating number"}}
+        return {"data": {"error": "provide price as floating number"}}, 400
     if not negotiable_product:
-        return {"data": {"error": "provide product is negotiable or not"}}
+        return {"data": {"error": "provide product is negotiable or not"}}, 400
     if negotiable_product.capitalize()=="True":
         negotiable_product=True
     elif negotiable_product.capitalize()=="False":
         negotiable_product=False
     else:
-        return {"data": {"error": "provide product is negotiable or not as True or False"}}
+        return {"data": {"error": "provide product is negotiable or not as True or False"}}, 400
     if not feature_product:
-        return {"data": {"error": "provide product is featured or not"}}
+        return {"data": {"error": "provide product is featured or not"}}, 400
     if feature_product.capitalize()=="True":
         feature_product=True
     elif feature_product.capitalize()=="False":
         feature_product=False
     else:
-        return {"data": {"error": "provide product is featured or not as True or False"}}
+        return {"data": {"error": "provide product is featured or not as True or False"}}, 400
     if not ad_plan_id:
-        return {"data": {"error": "provide advertisement plan id"}}
+        return {"data": {"error": "provide advertisement plan id"}}, 400
     try:
         ad_plan_id=int(ad_plan_id)
     except ValueError:
-        return {"data": {"error": "provide advertisement plan id as integer"}}
-    if not AdPlan.query.filter_by(id=ad_plan_id).first():
-        return {"data": {"error": "advertisement plan id not found"}}
+        return {"data": {"error": "provide advertisement plan id as integer"}}, 400
+    if not create_ad_plan_db(ad_plan_id):
+        return {"data": {"error": "advertisement plan id not found"}}, 400
     if not location:
-        return {"data": {"error": "provide location"}}
+        return {"data": {"error": "provide location"}}, 400
     if not latitude:
-        return {"data": {"error": "provide latitude"}}
+        return {"data": {"error": "provide latitude"}}, 400
     try:
         latitude = float(latitude)
     except ValueError:
-        return {"data": {"error": "provide latitude as floating number"}}
+        return {"data": {"error": "provide latitude as floating number"}}, 400
     if not longitude:
-        return {"data": {"error": "provide longitude"}}
+        return {"data": {"error": "provide longitude"}}, 400
     try:
         longitude = float(longitude)
     except ValueError:
-        return {"data": {"error": "provide longitude as floating number"}}
-    if  float(longitude) is False:
-        return {"data": {"error": "provide longitude as floating number"}}
+        return {"data": {"error": "provide longitude as floating number"}}, 400
     if not phone:
-        return {"data":{"error": "provide phone number"}}
+        return {"data":{"error": "provide phone number"}}, 400
     if not check_phone(phone):
-        return {"data": {"error": "provide valid phone number"}}
+        return {"data": {"error": "provide valid phone number"}}, 400
     if not email_id:
-        return {"data": {"error": "provide email"}}
+        return {"data": {"error": "provide email"}}, 400
     if not check_email(email_id):
-        return {"data": {"error": "provide valid email"}}
-
+        return {"data": {"error": "provide valid email"}}, 400
     geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
 
+    return create_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo)
 
+def create_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo):
     with Session(engine) as session:
         session.begin()
         try:
 
             ad_1 = Advertisement(title=title, user_id=get_jwt_identity(),
-                                    description=description, category_id=category_id,
-                                    status=status, seller_type=seller_type,
-                                    price=price, advertising_plan_id=ad_plan_id, is_deleted= False,
-                                    is_negotiable=negotiable_product, is_featured=feature_product,
-                                    location=location, latitude=latitude, longitude=longitude,
-                                    seller_name=seller_name, phone=phone, email=email_id,
-                                    advertising_id=generate_random_text(), geo=geo)
+                                 description=description, category_id=category_id,
+                                 status=status, seller_type=seller_type,
+                                 price=price, advertising_plan_id=ad_plan_id, is_deleted=False,
+                                 is_negotiable=negotiable_product, is_featured=feature_product,
+                                 location=location, latitude=latitude, longitude=longitude,
+                                 seller_name=seller_name, phone=phone, email=email_id,
+                                 advertising_id=generate_random_text(), geo=geo)
 
             session.add(ad_1)
             for image in images:
@@ -327,7 +332,8 @@ def create_ad():
                 filename = secure_filename(image.filename)
                 image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
                 session.commit()
-                ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename, is_cover_image=cover_image, ad_id=ad_1.id)
+                ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename,
+                                     is_cover_image=cover_image, ad_id=ad_1.id)
                 session.add(ad_image_1)
         except:
             session.rollback()
@@ -335,6 +341,15 @@ def create_ad():
         else:
             session.commit()
             return {"data": {"message": "ad created"}}
+
+def create_ad_category_db(category_id):
+    category=Category.query.filter_by(id=int(category_id)).first()
+    return category
+
+def create_ad_plan_db(ad_plan_id):
+    plan=AdPlan.query.filter_by(id=ad_plan_id).first()
+    return plan
+
 
 @ad.route("/view_ad", methods=["GET"])
 def view_ad():
@@ -401,7 +416,7 @@ def view_ad():
     list_ad = []
     for advertisement in advertisements:
         ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
-        ad_filter = {"id": advertisement.id,"title": advertisement.title, "cover image": "http://10.6.9.26:5000" + '/' + ad_images.file, "featured": advertisement.is_featured, "location": advertisement.location, "price": advertisement.price}
+        ad_filter = {"id": advertisement.id,"title": advertisement.title, "cover image": os.getenv('HOME_ROUTE')+ ad_images.file, "featured": advertisement.is_featured, "location": advertisement.location, "price": advertisement.price}
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad}}
 
@@ -410,8 +425,7 @@ def view_ad():
 @jwt_required()
 def update_ad(ads_id):
     person = get_jwt_identity()
-    adv=Advertisement.query.filter_by(id=ads_id).first()
-    if adv.user_id==person:
+    if update_ad_id_db(ads_id,person):
         category_id = request.form.get("category_id")
         status = request.form.get("status")
         images = request.files.getlist('images')
@@ -439,7 +453,7 @@ def update_ad(ads_id):
             category_id=int(category_id)
         except ValueError:
             return {"data": {"error": "provide category id as integer"}}
-        if Category.query.filter_by(id=int(category_id)).first() is None:
+        if create_ad_category_db(category_id) is None:
             return {"data": {"error": "category id not found"}}
         if not title:
             return {"data": {"error": "provide title"}}
@@ -477,7 +491,7 @@ def update_ad(ads_id):
             ad_plan_id=int(ad_plan_id)
         except ValueError:
             return {"data": {"error": "provide advertisement plan id as integer"}}
-        if not AdPlan.query.filter_by(id=ad_plan_id).first():
+        if not create_ad_plan_db(ad_plan_id):
             return {"data": {"error": "advertisement plan id not found"}}
         if not location:
             return {"data": {"error": "provide location"}}
@@ -503,44 +517,53 @@ def update_ad(ads_id):
             return {"data": {"error": "provide email"}}
         if not check_email(email_id):
             return {"data": {"error": "provide valid email"}}
-
         geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
-        try:
-            adv.title=title
-            adv.description=description
-            adv.category_id=category_id
-            adv.status=status
-            adv.seller_type=seller_type
-            adv.price=price
-            adv.advertising_plan_id=ad_plan_id
-            adv.is_negotiable=negotiable_product
-            adv.is_featured=feature_product
-            adv.location=location
-            adv.latitude=latitude
-            adv.longitude=longitude
-            adv.seller_name=seller_name
-            adv.phone=phone
-            adv.email=email_id
-            adv.geo=geo
-            ad_images = AdImage.query.filter_by(ad_id=adv.id).all()
-            for ad_image in ad_images:
-                db.session.delete(ad_image)
-            for image in images:
-                display_order = images.index(image) + 1
-                if images.index(image) == 0:
-                    cover_image = True
-                else:
-                    cover_image = False
-                filename = secure_filename(image.filename)
-                image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
-                ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename, is_cover_image=cover_image, ad_id=adv.id)
-                db.session.add(ad_image_1)
-            db.session.commit()
-            return {"data": {"message": "ad edited successfully"}}
-        except:
-            return {"data": {"error": "error uploading image"}}
+        return update_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo)
     else:
         return{"data": {"error": "only owner can edit ad"}}
+
+def update_ad_id_db(ads_id,person):
+    adv = Advertisement.query.filter_by(id=ads_id).first()
+    return adv.user_id==person
+
+def update_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo):
+    try:
+        adv = Advertisement.query.filter_by(id=ads_id).first()
+        adv.title = title
+        adv.description = description
+        adv.category_id = category_id
+        adv.status = status
+        adv.seller_type = seller_type
+        adv.price = price
+        adv.advertising_plan_id = ad_plan_id
+        adv.is_negotiable = negotiable_product
+        adv.is_featured = feature_product
+        adv.location = location
+        adv.latitude = latitude
+        adv.longitude = longitude
+        adv.seller_name = seller_name
+        adv.phone = phone
+        adv.email = email_id
+        adv.geo = geo
+        ad_images = AdImage.query.filter_by(ad_id=adv.id).all()
+        for ad_image in ad_images:
+            db.session.delete(ad_image)
+        for image in images:
+            display_order = images.index(image) + 1
+            if images.index(image) == 0:
+                cover_image = True
+            else:
+                cover_image = False
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
+            ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename,
+                                 is_cover_image=cover_image, ad_id=adv.id)
+            db.session.add(ad_image_1)
+        db.session.commit()
+        return {"data": {"message": "ad edited successfully"}}
+    except:
+        return {"data": {"error": "error uploading image"}}
+
 
 
 

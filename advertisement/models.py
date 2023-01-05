@@ -1,7 +1,6 @@
-from user import models
+
 from datetime import datetime
 from database import get_db
-from sqlalchemy import *
 from geoalchemy2 import Geography
 db = get_db()
 
