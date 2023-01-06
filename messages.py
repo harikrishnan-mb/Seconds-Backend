@@ -1,19 +1,19 @@
-class ErrorCodes:
-    error_codes={"username does not exist": 1001,
-                     "provide password": 1002,
-                     "incorrect password": 1003,
-                     "provide all login keys": 1004,
-                      "email cannot be empty": 1005,
-                      "username cannot be empty": 1006, "password cannot be empty": 1007,
-                      "Please provide a valid email": 1008,
-                      "Please provide a valid username":1009,
-                      "Password should contain least 1 number, 1 special symbol, 1 uppercase letter and 1 lowercase letter and maximum length is 20 and minimum length is 8": 1010,
-                      "Username already exists": 1011,
-                      "email already exists": 1012,
-                      "provide all signup keys": 1013,
-                      "please provide current password": 1014,
-                      "please provide new password": 1015,
-                      "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8": 1010,
-                      "new password should not be same as previous password": 1017,
-                      "key not found": 1018}
-
+from enum import Enum
+class ErrorCodes(Enum):
+    username_does_not_exist = 1001
+    provide_password=1002
+    incorrect_password=1003
+    provide_all_login_keys=1004
+    email_cannot_be_empty=1005
+    username_cannot_be_empty=1006
+    password_cannot_be_empty=1007
+    provide_a_valid_email=1008
+    provide_a_valid_username=1009
+    password_format_not_matching=1010
+    username_already_exists=1011
+    email_already_exists=1012
+    provide_all_signup_keys=1013
+    provide_current_password=1014
+    provide_new_password=1015
+    new_password_should_not_be_same_as_previous_password=1017
+    key_not_found=1018

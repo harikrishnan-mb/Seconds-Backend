@@ -54,7 +54,7 @@ def delete_category(category_id):
         if category_update(category_id):
             return category_delete(category_id)
         else:
-            return {"data": {"message": "category does not exist"}}
+            return {"data": {"error": "category does not exist"}}
     else:
         return {"data": {"error": "only admin can access this route"}}
 def admin_is_true(person):

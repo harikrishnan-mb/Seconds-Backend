@@ -215,7 +215,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
-        self.assertTrue(b' provide current password' in response.data)
+        self.assertTrue(b'provide current password' in response.data)
 
     @patch('user.api.reset_password_db')
     @patch('user.api.matching_password')
