@@ -21,25 +21,25 @@ def signup():
         username = data['username']
         password = data['password']
         if not email_id:
-            return {"data" :{"error": "email cannot be empty", "error_id": ErrorCodes.email_cannot_be_empty.value}}, 400
+            return {"data" :{"error": ErrorCodes.email_cannot_be_empty.value["msg"], "error_id": ErrorCodes.email_cannot_be_empty.value["code"]}}, 400
         if not username:
-            return {"data" :{"error": "username cannot be empty", "error_id": ErrorCodes.username_cannot_be_empty.value}}, 400
+            return {"data" :{"error": ErrorCodes.username_cannot_be_empty.value["msg"], "error_id": ErrorCodes.username_cannot_be_empty.value["code"]}}, 400
         if not password:
-            return {"data":{"error": "password cannot be empty", "error_id": ErrorCodes.password_cannot_be_empty.value}}, 400
+            return {"data":{"error": ErrorCodes.password_cannot_be_empty.value["msg"], "error_id": ErrorCodes.password_cannot_be_empty.value["code"]}}, 400
         if not check_email(email_id):
-            return {"data" :{"error": "provide a valid email", "error_id": ErrorCodes.provide_a_valid_email.value}}, 400
+            return {"data" :{"error": ErrorCodes.provide_a_valid_email.value["msg"], "error_id": ErrorCodes.provide_a_valid_email.value["code"]}}, 400
         if not check_username(username):
-            return {"data" :{"error": "provide a valid username", "error_id": ErrorCodes.provide_a_valid_username.value}}, 400
+            return {"data" :{"error": ErrorCodes.provide_a_valid_username.value["msg"], "error_id": ErrorCodes.provide_a_valid_username.value["code"]}}, 400
         if not password_check(password):
-            return {"data" :{"error": "password should contain least 1 number, 1 special symbol, 1 uppercase letter and 1 lowercase letter and maximum length is 20 and minimum length is 8", "error_id": ErrorCodes.password_format_not_matching.value}}, 400
+            return {"data" :{"error": ErrorCodes.password_format_not_matching.value["msg"] , "error_id": ErrorCodes.password_format_not_matching.value["code"]}}, 400
         if user_query(username) is not None:
-            return {"data":{"error": "username already exists", "error_id": ErrorCodes.username_already_exists.value}}, 409
+            return {"data":{"error": ErrorCodes.username_already_exists.value["msg"], "error_id": ErrorCodes.username_already_exists.value["code"]}}, 409
         if user_mail_query(email_id) is not None:
-            return {"data":{"error": "email already exists", "error_id": ErrorCodes.email_already_exists.value}}, 409
+            return {"data":{"error": ErrorCodes.email_already_exists.value["msg"], "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
 
         return user_profile_commit(username, email_id, password)
     except KeyError:
-        return {"data": {"error" : "provide all signup keys","error_id": ErrorCodes.provide_all_signup_keys.value}}, 400
+        return {"data": {"error" : ErrorCodes.provide_all_signup_keys.value["msg"],"error_id": ErrorCodes.provide_all_signup_keys.value["code"]}}, 400
 def user_query(username):
     query=User.query.filter_by(username=username).first()
     return query
@@ -115,15 +115,15 @@ def login():
         password = data['password']
 
         if user_filter_db(username) is None:
-            return {"data": {"error": "username does not exist", "error_id": ErrorCodes.username_does_not_exist.value}}, 400
+            return {"data": {"error": ErrorCodes.username_does_not_exist.value["msg"], "error_id": ErrorCodes.username_does_not_exist.value["code"]}}, 400
         if password == "":
-            return {"data": {"error": "provide password", "error_id": ErrorCodes.provide_password.value}}, 400
+            return {"data": {"error": ErrorCodes.provide_password.value["msg"], "error_id": ErrorCodes.provide_password.value["code"]}}, 400
         if user_filter_db(username) and password_match(username,password):
             return checking_userpassword(username, password)
-        return {"data": {"error": "incorrect password", "error_id": ErrorCodes.incorrect_password.value}}, 409
+        return {"data": {"error": ErrorCodes.incorrect_password.value["msg"], "error_id": ErrorCodes.incorrect_password.value["code"]}}, 409
 
     except KeyError:
-        return {"data": {"error": "provide all login keys", "error_id": ErrorCodes.provide_all_login_keys.value}}, 400
+        return {"data": {"error": ErrorCodes.provide_all_login_keys.value["msg"], "error_id": ErrorCodes.provide_all_login_keys.value["code"]}}, 400
 
 def user_filter_db(username):
     user_in = User.query.filter_by(username=username).first()
@@ -165,19 +165,19 @@ def reset_password():
         new_password = data['new_password']
 
         if not current_password:
-            return {'data':{'error': "provide current password", "error_id": ErrorCodes.provide_current_password.value}}, 400
+            return {'data':{'error': ErrorCodes.provide_current_password.value['msg'], "error_id": ErrorCodes.provide_current_password.value['code']}}, 400
         if not new_password:
-            return {'data':{'error': "provide new password", "error_id": ErrorCodes.provide_new_password.value}}, 400
+            return {'data':{'error': ErrorCodes.provide_new_password.value['msg'], "error_id": ErrorCodes.provide_new_password.value['code']}}, 400
         if not matching_password(user_id, current_password):
-            return {"data": {"error" :"incorrect password", "error_id": ErrorCodes.incorrect_password.value}}, 400
+            return {"data": {"error" : ErrorCodes.incorrect_password.value['msg'], "error_id": ErrorCodes.incorrect_password.value['code']}}, 400
         if not password_check(new_password):
-            return {"data": {"error": "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8", 'error_id': ErrorCodes.password_format_not_matching.value}}, 400
+            return {"data": {"error": ErrorCodes.password_format_not_matching.value["msg"], 'error_id': ErrorCodes.password_format_not_matching.value["code"]}}, 400
         if current_password==new_password:
-            return {"data": {"error": "new password should not be same as previous password", "error_id": ErrorCodes.new_password_should_not_be_same_as_previous_password.value}}, 400
+            return {"data": {"error": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["msg"], "error_id": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["code"]}}, 400
 
         return reset_password_db(user_id, new_password)
     except KeyError:
-        return {"data": {"error": "key not found", "error_id": ErrorCodes.key_not_found.value}}, 400
+        return {"data": {"error": ErrorCodes.key_not_found.value["msg"], "error_id": ErrorCodes.key_not_found.value["code"]}}, 400
 
 def filter_user(user_id):
     user_a = User.query.filter_by(id=user_id).first()
