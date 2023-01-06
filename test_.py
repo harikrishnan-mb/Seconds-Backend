@@ -4,11 +4,12 @@ try:
     from unittest.mock import Mock, patch
     from flask_jwt_extended import create_access_token, create_refresh_token
     import json
+    from user.api import hashing_password
 except Exception as e:
     print('Some modules are missing {}'.format(e))
 
 
-class ApiTest1(unittest.TestCase):
+class ApiTest(unittest.TestCase):
     client=app.test_client()
     with app.app_context():
         access_token = dict(Authorization='Bearer ' + create_access_token(identity=1))
@@ -114,6 +115,9 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'email already exists' in response.data)
+
+    def test_hashing_password(self):
+        self.assertNotEqual(hashing_password("password"), "password")
 
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
@@ -349,10 +353,12 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'days' in response.data)
         self.assertTrue(b'data' in response.data)
 
+    @patch('advertisement.api.category_update')
     @patch('advertisement.api.category_delete')
     @patch('advertisement.api.admin_is_true')
-    def test_delete_category1(self, mock_admin_is_true, mock_category_delete):
+    def test_delete_category1(self, mock_admin_is_true, mock_category_delete,mock_category_update):
         mock_admin_is_true.return_value = True
+        mock_category_update.return_value=True
         mock_category_delete.return_value = {"data": {"message": "category removed"}}, 200
         response = self.client.delete("/ad/category_delete/1", headers=self.access_token)
         self.assertEqual(response.status_code, 200)
@@ -374,12 +380,28 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'only admin can access this route' in response.data)
 
+    @patch('advertisement.api.category_update')
+    @patch('advertisement.api.category_delete')
+    @patch('advertisement.api.admin_is_true')
+    def test_delete_category3(self, mock_admin_is_true, mock_category_delete, mock_category_update):
+        mock_admin_is_true.return_value = True
+        mock_category_update.return_value = False
+        mock_category_delete.return_value = {"data": {"message": "category removed"}}, 200
+        response = self.client.delete("/ad/category_delete/1", headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'category does not exist' in response.data)
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+
+
     @patch('advertisement.api.add_categories')
     @patch('advertisement.api.admin_is_true')
     def test_add_category1(self, mock_admin_is_true, mock_add_categories):
+        category_obj={"category":"Test1", "file":"", "parent_id":1}
         mock_admin_is_true.return_value = True
         mock_add_categories.return_value = {"data": {"message": "Category created"}}, 200
-        response = self.client.post("/ad/add_category", headers=self.access_token)
+        response = self.client.post("/ad/add_category", headers=self.access_token, data=category_obj)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'Category created' in response.data)
@@ -390,7 +412,7 @@ class ApiTest1(unittest.TestCase):
     @patch('advertisement.api.admin_is_true')
     def test_add_category2(self, mock_admin_is_true, mock_add_categories):
         mock_admin_is_true.return_value = False
-        mock_add_categories.return_value = {"data": {"message": "category removed"}}, 200
+        mock_add_categories.return_value = {"data": {"message": "Category created"}}, 200
         response = self.client.post("/ad/add_category", headers=self.access_token)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
@@ -398,12 +420,15 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'error' in response.data)
 
+    @patch('advertisement.api.category_update')
     @patch('advertisement.api.change_categories')
     @patch('advertisement.api.admin_is_true')
-    def test_change_category(self, mock_admin_is_true, mock_change_categories):
+    def test_change_category(self, mock_admin_is_true, mock_change_categories, mock_category_update):
+        category_obj = {"category": "Test1", "file": "", "parent_id": 1}
         mock_admin_is_true.return_value = True
+        mock_category_update.return_value=True
         mock_change_categories.return_value = {"data": {"message": "Category updated"}}, 200
-        response = self.client.put("/ad/update_category/1", headers=self.access_token)
+        response = self.client.put("/ad/update_category/1", headers=self.access_token, data=category_obj)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'message' in response.data)
@@ -419,6 +444,20 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'only admin can update category' in response.data)
+
+    @patch('advertisement.api.category_update')
+    @patch('advertisement.api.change_categories')
+    @patch('advertisement.api.admin_is_true')
+    def test_change_category3(self, mock_admin_is_true, mock_change_categories, mock_category_update):
+        category_obj = {"category": "Test1", "file": "", "parent_id": 1}
+        mock_admin_is_true.return_value = True
+        mock_category_update.return_value = False
+        mock_change_categories.return_value = {"data": {"message": "Category updated"}}, 200
+        response = self.client.put("/ad/update_category/1", headers=self.access_token, data=category_obj)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'category id does not exist' in response.data)
 
     @patch('advertisement.api.create_ad_plan_db')
     @patch('advertisement.api.create_ad_category_db')

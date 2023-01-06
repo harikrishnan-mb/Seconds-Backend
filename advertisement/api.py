@@ -21,12 +21,9 @@ engine=create_engine(os.getenv("ENGINE"))
 @ad.route("/list_every_category", methods=["GET"])
 def list_every_category():
     return get_every_categories()
-
-
 def get_every_categories():
     categories = Category.query.filter_by(parent_id=None).order_by(Category.id).all()
     categories_list = []
-    os.getenv("HOME_ROUTE")
     for category in categories:
         sub_categories_list = []
         sub_categories = Category.query.filter_by(parent_id=category.id).all()
@@ -37,16 +34,14 @@ def get_every_categories():
         categories_list.append(category_name)
     return {"data": {"message": categories_list}}, 200
 
-
 @ad.route("/category", methods=["GET"])
 def list_category():
     return get_only_categories()
-
 def get_only_categories():
     categories=Category.query.filter_by(parent_id=None).order_by(Category.id).all()
     categories_list=[]
     for category in categories:
-        category_name={"id":category.id, "name": category.name, "images": "http://10.6.9.26:5000"+'/'+category.image}
+        category_name={"id":category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image}
         categories_list.append(category_name)
     return{"data": {"message": categories_list}}, 200
 
@@ -56,7 +51,10 @@ def get_only_categories():
 def delete_category(category_id):
     person = get_jwt_identity()
     if admin_is_true(person) is True:
-        return category_delete(category_id)
+        if category_update(category_id):
+            return category_delete(category_id)
+        else:
+            return {"data": {"message": "category does not exist"}}
     else:
         return {"data": {"error": "only admin can access this route"}}
 def admin_is_true(person):
@@ -84,37 +82,40 @@ def allowed_file(filename):
 def add_category():
     person = get_jwt_identity()
     if admin_is_true(person) is True:
-        return add_categories()
+        category = request.form.get("category")
+        file = request.files.get('file')
+        parent_id = request.form["parent_id"]
+        if not category:
+            return {"data": {"error": "provide category name"}}
+        if not file and not parent_id:
+            return {"data": {"error": "provide parent_id or file"}}
+        if parent_id and file:
+            return {"data": {"error": "provide image if category and provide parent_id if sub category"}}
+        if parent_id:
+            try:
+                parent_id=float(parent_id)
+            except ValueError:
+                return {"data":{"error":"parent_id should be integer"}}
+        return add_categories(category,file,parent_id)
     else:
         return {"data": {"error": "only admin can add category"}}, 400
-def add_categories():
-    category = request.form.get("category")
-    file = request.files.get('file')
-    parent_id = request.form.get("parent_id")
-    if not category:
-        return {"data": {"error": "provide category name"}}
-    if not file and not  parent_id:
-        return {"data": {"error": "provide parent_id or file"}}
-    if file and parent_id:
-        return {"data": {"error": "provide parent_id or file"}}
+def add_categories(category,file,parent_id):
     filter_category = Category.query.filter_by(name=category).first()
     if filter_category:
         return {"data": {"error": "category already exist"}}
-    if parent_id and file:
-        return {"data": {"error": "provide image if category and provide parent_id if sub category"}}
-    check_ids = Category.query.filter_by(id=parent_id).first()
     if parent_id:
+        check_ids = Category.query.filter_by(id=parent_id).first()
         if not check_ids:
             return {"data": {"error": "parent_id should be id of any category"}}
         else:
-            category_add = Category(category, "", parent_id)
-    if not parent_id or parent_id == '':
-        if not file:
-            return {"data": {"error": "image is required for the category"}}
+            category_add = Category(name=category, image="", parent_id=parent_id)
+    if not parent_id or parent_id=='':
+        if not allowed_file(file.filename):
+            return {"data": {"error": "image should be svg"}}
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            category_add = Category(category, 'static/catagory/' + filename, parent_id)
+            category_add = Category(name=category, image='static/catagory/' + filename, parent_id=None)
     db.session.add(category_add)
     db.session.commit()
     return {"data": {"message": "Category created"}}
@@ -124,52 +125,60 @@ def add_categories():
 def change_category(category_id):
     person = get_jwt_identity()
     if admin_is_true(person) is True:
-        return change_categories(category_id)
+        if category_update(category_id):
+            category = request.form.get("category")
+            file = request.files.get('file')
+            parent_id = request.form["parent_id"]
+            if not category:
+                return {"data": {"error": "provide category name"}}
+            if not file and not parent_id:
+                return {"data": {"error": "provide parent_id or file"}}
+            if parent_id and file:
+                return {"data": {"error": "provide image if category and provide parent_id if sub category"}}
+            if parent_id:
+                try:
+                    parent_id=float(parent_id)
+                except ValueError:
+                    return {"data":{"error":"parent_id should be integer"}}
+            return change_categories(category_id,category,file,parent_id)
+        else:
+            return {"data": {"error": "category id does not exist"}}
     else:
         return {"data": {"error": "only admin can update category"}}, 400
 
-def change_categories(category_id):
-    category = request.form["category"]
-    file = request.files.get('file')
-    parent_id = request.form.get("parent_id")
-    if not category:
-        return {"data": {"error": "provide category name"}}
+def change_categories(category_id,category,file,parent_id):
+    category_to_update = Category.query.filter_by(id=category_id).first()
     filter_category = Category.query.filter_by(name=category).first()
-    category_update = Category.query.filter_by(id=category_id).first()
     if filter_category:
         return {"data": {"error": "category already exist"}}
     if parent_id:
         check_ids = Category.query.filter_by(id=parent_id).first()
         if not check_ids:
-            {"data": {"error": "parent_id should be id of any category"}}
-        try:
-            os.remove(os.path.join(app.config['UPLOADED_ITEMS_DEST'], filter_category.image))
-        except:
-            pass
-        category_update.name = category
-        category_update.image = ''
-        category_update.parent_id = parent_id
+            return {"data": {"error": "parent_id should be id of any category"}}
+
+        category_to_update.name = category
+        category_to_update.image = ''
+        category_to_update.parent_id = parent_id
     if not parent_id or parent_id == '':
-        if not file:
-            return {"data": {"error": "image is required for the category"}}
+        if not allowed_file(file.filename):
+            return {"data": {"error": "image should be svg"}}
         if file and allowed_file(file.filename):
-            try:
-                os.remove(os.path.join(app.config['UPLOADED_ITEMS_DEST'], filter_category.image))
-            except:
-                pass
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            category_update.name = category
-            category_update.image = 'static/catagory/' + filename
-            category_update.parent_id = parent_id
-    db.session.add(category_update)
+            category_to_update.name = category
+            category_to_update.image = 'static/catagory/' + filename
+            category_to_update.parent_id = None
+    db.session.add(category_to_update)
     db.session.commit()
     return {"data": {"message": "Category updated"}}
+
+def category_update(category_id):
+     return Category.query.filter_by(id=category_id).first()
+
 
 @ad.route("/ad_plan", methods=["GET"])
 def list_ad_plan():
     return ads_plan()
-
 def ads_plan():
     ad_plans = AdPlan.query.all()
     ad_plan_list = []
@@ -179,14 +188,11 @@ def ads_plan():
     return {"data": {"message": ad_plan_list}}, 200
 def allowed_img_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}
-
 def generate_random_text():
     return ''.join(secrets.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(20))
-
 def check_phone(phone):
     phone_num = "[6-9][0-9]{9}"
     return re.fullmatch(phone_num, phone)
-
 
 @ad.route("/delete_ad/<int:del_ad_id>", methods=["DELETE"])
 @jwt_required()
