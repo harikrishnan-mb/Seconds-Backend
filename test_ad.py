@@ -86,7 +86,7 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'days' in response.data)
         self.assertTrue(b'data' in response.data)
 
-    @patch('advertisement.api.category_update')
+    @patch('advertisement.api.filtering_category')
     @patch('advertisement.api.category_delete')
     @patch('advertisement.api.admin_is_true')
     def test_delete_category1(self, mock_admin_is_true, mock_category_delete,mock_category_update):
@@ -113,7 +113,7 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'only admin can access this route' in response.data)
 
-    @patch('advertisement.api.category_update')
+    @patch('advertisement.api.filtering_category')
     @patch('advertisement.api.category_delete')
     @patch('advertisement.api.admin_is_true')
     def test_delete_category3(self, mock_admin_is_true, mock_category_delete, mock_category_update):
@@ -153,7 +153,7 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'error' in response.data)
 
-    @patch('advertisement.api.category_update')
+    @patch('advertisement.api.filtering_category')
     @patch('advertisement.api.change_categories')
     @patch('advertisement.api.admin_is_true')
     def test_change_category(self, mock_admin_is_true, mock_change_categories, mock_category_update):
@@ -178,7 +178,7 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'only admin can update category' in response.data)
 
-    @patch('advertisement.api.category_update')
+    @patch('advertisement.api.filtering_category')
     @patch('advertisement.api.change_categories')
     @patch('advertisement.api.admin_is_true')
     def test_change_category3(self, mock_admin_is_true, mock_change_categories, mock_category_update):
@@ -192,9 +192,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'category id does not exist' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad1(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj={"category_id": "", "status": "active", "title": "BMW Car", "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1", "negotiable_product": "True", "feature_product":"True","price": "5000", "location": "Kochi", "latitude": "9.9", "longitude": "76.2", "seller_name":"Aadi", "phone": 7897987890, "email_id": "testuser@gmail.com", "images":['default.jpg']}
         image_obj={"images":['default.jpg']}
@@ -207,9 +207,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide category id' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad2(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "BMW Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -226,9 +226,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'message' in response.data)
         self.assertTrue(b'ad created' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad3(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1aca", "status": "active", "title": "BMW Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -245,9 +245,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide category id as integer' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad4(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "BMW Car",
                          "description": "5000 km run car for sale", "seller_type": "", "ad_plan_id": "1",
@@ -264,9 +264,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide seller_type' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad5(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -283,9 +283,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide title' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad6(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -302,9 +302,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide location' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad7(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "",
@@ -321,9 +321,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide advertisement plan id' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad8(self, mock_create_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "sd",
@@ -340,9 +340,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide advertisement plan id as integer' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad9(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "1", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "24",
@@ -359,9 +359,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'advertisement plan id not found' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad10(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "234", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -378,9 +378,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'category id not found' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad11(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -397,9 +397,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is negotiable or not as True or False' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad12(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -416,9 +416,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is negotiable or not' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad13(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -435,9 +435,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is featured or not' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad14(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -454,9 +454,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is featured or not as True or False' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad15(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -473,9 +473,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide price as floating number' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad16(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -492,9 +492,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide price' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad17(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -511,9 +511,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide latitude' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad17(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -530,9 +530,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide latitude' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad18(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -549,9 +549,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide phone number' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad19(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -568,9 +568,9 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide valid phone number' in response.data)
 
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.create_ad_db')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.saving_created_ad')
     def test_create_ad20(self, mock_create_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -587,10 +587,10 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide valid email' in response.data)
 
-    @patch('advertisement.api.update_ad_id_db')
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.update_ad_db')
+    @patch('advertisement.api.checking_person_posted_ad')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.updating_ad_details')
     def test_update_ad1(self,mock_update_ad_db,mock_create_ad_category_db, mock_create_ad_plan_db,mock_update_ad_id_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -608,11 +608,11 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'message' in response.data)
         self.assertTrue(b'ad edited successfully' in response.data)
 
-    @patch('advertisement.api.update_ad_id_db')
-    @patch('advertisement.api.create_ad_plan_db')
-    @patch('advertisement.api.create_ad_category_db')
-    @patch('advertisement.api.update_ad_db')
-    def test_update_ad1(self, mock_update_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db,
+    @patch('advertisement.api.checking_person_posted_ad')
+    @patch('advertisement.api.checking_adplan_exist')
+    @patch('advertisement.api.checking_category_id_exist')
+    @patch('advertisement.api.updating_ad_details')
+    def test_update_ad2(self, mock_update_ad_db, mock_create_ad_category_db, mock_create_ad_plan_db,
                         mock_update_ad_id_db):
         create_ad_obj = {"category_id": "24", "status": "active", "title": "Car",
                          "description": "5000 km run car for sale", "seller_type": "Agent", "ad_plan_id": "1",
@@ -630,10 +630,10 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'only owner can edit ad' in response.data)
 
-    @patch('advertisement.api.ad_id_and_person')
-    @patch('advertisement.api.del_ad_filter_adv')
-    @patch('advertisement.api.delete_ad_person')
-    def test_delete_ad(self, mock_delete_ad_person, mock_del_ad_filter_adv, mock_ad_id_and_person):
+    @patch('advertisement.api.checking_user_posted_ad')
+    @patch('advertisement.api.filtering_ad_by_id')
+    @patch('advertisement.api.deleting_ad')
+    def test_delete_ad1(self, mock_delete_ad_person, mock_del_ad_filter_adv, mock_ad_id_and_person):
         mock_delete_ad_person.return_value = {"data": {"message": "ad deleted"}}
         mock_del_ad_filter_adv.return_value = "ad"
         mock_ad_id_and_person.return_value= True
@@ -643,10 +643,10 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'message' in response.data)
         self.assertTrue(b'ad deleted' in response.data)
 
-    @patch('advertisement.api.ad_id_and_person')
-    @patch('advertisement.api.del_ad_filter_adv')
-    @patch('advertisement.api.delete_ad_person')
-    def test_delete_ad(self, mock_delete_ad_person, mock_del_ad_filter_adv, mock_ad_id_and_person):
+    @patch('advertisement.api.checking_user_posted_ad')
+    @patch('advertisement.api.filtering_ad_by_id')
+    @patch('advertisement.api.deleting_ad')
+    def test_delete_ad2(self, mock_delete_ad_person, mock_del_ad_filter_adv, mock_ad_id_and_person):
         mock_delete_ad_person.return_value = {"data": {"message": "ad deleted"}}
         mock_del_ad_filter_adv.return_value = "ad"
         mock_ad_id_and_person.return_value = True
@@ -656,10 +656,10 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'message' in response.data)
         self.assertTrue(b'ad deleted' in response.data)
 
-    @patch('advertisement.api.ad_id_and_person')
-    @patch('advertisement.api.del_ad_filter_adv')
-    @patch('advertisement.api.delete_ad_person')
-    def test_delete_ad1(self, mock_delete_ad_person, mock_del_ad_filter_adv, mock_ad_id_and_person):
+    @patch('advertisement.api.checking_user_posted_ad')
+    @patch('advertisement.api.filtering_ad_by_id')
+    @patch('advertisement.api.deleting_ad')
+    def test_delete_ad3(self, mock_delete_ad_person, mock_del_ad_filter_adv, mock_ad_id_and_person):
         mock_delete_ad_person.return_value = {"data": {"message": "ad deleted"}}
         mock_del_ad_filter_adv.return_value = None
         mock_ad_id_and_person.return_value = True

@@ -32,23 +32,23 @@ def signup():
             return {"data" :{"error": ErrorCodes.provide_a_valid_username.value["msg"], "error_id": ErrorCodes.provide_a_valid_username.value["code"]}}, 400
         if not password_check(password):
             return {"data" :{"error": ErrorCodes.password_format_not_matching.value["msg"] , "error_id": ErrorCodes.password_format_not_matching.value["code"]}}, 400
-        if user_query(username) is not None:
+        if checking_username_exist(username) is not None:
             return {"data":{"error": ErrorCodes.username_already_exists.value["msg"], "error_id": ErrorCodes.username_already_exists.value["code"]}}, 409
-        if user_mail_query(email_id) is not None:
+        if checking_mail_exist(email_id) is not None:
             return {"data":{"error": ErrorCodes.email_already_exists.value["msg"], "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
 
-        return user_profile_commit(username, email_id, password)
+        return saving_user_to_db(username, email_id, password)
     except KeyError:
         return {"data": {"error" : ErrorCodes.provide_all_signup_keys.value["msg"],"error_id": ErrorCodes.provide_all_signup_keys.value["code"]}}, 400
-def user_query(username):
+def checking_username_exist(username):
     query=User.query.filter_by(username=username).first()
     return query
 
-def user_mail_query(email_id):
+def checking_mail_exist(email_id):
     query=User.query.filter_by(email=email_id).first()
     return query
 
-def user_profile_commit(username, email_id, password):
+def saving_user_to_db(username, email_id, password):
     user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
     profile_1 = UserProfile(None, None, None, None, user_id=user_1.id)
 
@@ -114,23 +114,20 @@ def login():
         username = data['username']
         password = data['password']
 
-        if user_filter_db(username) is None:
+        if checking_username_exist(username) is None:
             return {"data": {"error": ErrorCodes.username_does_not_exist.value["msg"], "error_id": ErrorCodes.username_does_not_exist.value["code"]}}, 400
         if password == "":
             return {"data": {"error": ErrorCodes.provide_password.value["msg"], "error_id": ErrorCodes.provide_password.value["code"]}}, 400
-        if user_filter_db(username) and password_match(username,password):
+        if checking_username_exist(username) and password_match(username,password):
             return checking_userpassword(username, password)
         return {"data": {"error": ErrorCodes.incorrect_password.value["msg"], "error_id": ErrorCodes.incorrect_password.value["code"]}}, 409
 
     except KeyError:
         return {"data": {"error": ErrorCodes.provide_all_login_keys.value["msg"], "error_id": ErrorCodes.provide_all_login_keys.value["code"]}}, 400
 
-def user_filter_db(username):
-    user_in = User.query.filter_by(username=username).first()
-    return user_in
 
 def password_match(username,password):
-    validate_password=checking_2password(user_filter_db(username).hashed_password, password)
+    validate_password=checking_2password(checking_username_exist(username).hashed_password, password)
     return validate_password
 
 def checking_userpassword(username, password):
@@ -158,7 +155,6 @@ def refresh():
 @jwt_required()
 def reset_password():
     user_id = get_jwt_identity()
-    # filter_user(user_id)
     try:
         data = request.get_json()
         current_password = data['current_password']
@@ -175,7 +171,7 @@ def reset_password():
         if current_password==new_password:
             return {"data": {"error": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["msg"], "error_id": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["code"]}}, 400
 
-        return reset_password_db(user_id, new_password)
+        return saving_new_password(user_id, new_password)
     except KeyError:
         return {"data": {"error": ErrorCodes.key_not_found.value["msg"], "error_id": ErrorCodes.key_not_found.value["code"]}}, 400
 
@@ -184,11 +180,10 @@ def filter_user(user_id):
     return user_a
 
 def matching_password(user_id,current_password):
-    user_a = User.query.filter_by(id=user_id).first()
-    user_filter=checking_2password(user_a.hashed_password, current_password)
+    user_filter=checking_2password(filter_user(user_id).hashed_password, current_password)
     return user_filter
 
-def reset_password_db(user_id, new_password):
+def saving_new_password(user_id, new_password):
     user_a = User.query.filter_by(id=user_id).first()
     filter_user(user_id).hashed_password = hashing_password(new_password)
     db.session.add(filter_user(user_id))

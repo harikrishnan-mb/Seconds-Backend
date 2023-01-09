@@ -51,7 +51,7 @@ def get_only_categories():
 def delete_category(category_id):
     person = get_jwt_identity()
     if admin_is_true(person) is True:
-        if category_update(category_id):
+        if filtering_category(category_id):
             return category_delete(category_id)
         else:
             return {"data": {"error": "category does not exist"}}
@@ -125,7 +125,7 @@ def add_categories(category,file,parent_id):
 def change_category(category_id):
     person = get_jwt_identity()
     if admin_is_true(person) is True:
-        if category_update(category_id):
+        if filtering_category(category_id):
             category = request.form.get("category")
             file = request.files.get('file')
             parent_id = request.form["parent_id"]
@@ -172,7 +172,7 @@ def change_categories(category_id,category,file,parent_id):
     db.session.commit()
     return {"data": {"message": "Category updated"}}
 
-def category_update(category_id):
+def filtering_category(category_id):
      return Category.query.filter_by(id=category_id).first()
 
 
@@ -198,22 +198,22 @@ def check_phone(phone):
 @jwt_required()
 def delete_ad(del_ad_id):
     person = get_jwt_identity()
-    if del_ad_filter_adv(del_ad_id) is None:
+    if filtering_ad_by_id(del_ad_id) is None:
         return {"data": {"error": "ad not found"}}
-    if ad_id_and_person(del_ad_id, person):
-        return delete_ad_person(del_ad_id)
+    if checking_user_posted_ad(del_ad_id, person):
+        return deleting_ad(del_ad_id)
     return {"data": {"error": "invalid request"}}
 
-def ad_id_and_person(del_ad_id, person):
-    return del_ad_filter_adv(del_ad_id).user_id == person
+def checking_user_posted_ad(del_ad_id, person):
+    return filtering_ad_by_id(del_ad_id).user_id == person
 
-def del_ad_filter_adv(del_ad_id):
+def filtering_ad_by_id(del_ad_id):
     filter_advertisement = Advertisement.query.filter_by(id=del_ad_id).first()
     return filter_advertisement
 
-def delete_ad_person(del_ad_id):
-    del_ad_filter_adv(del_ad_id).is_deleted = True
-    db.session.add(del_ad_filter_adv(del_ad_id))
+def deleting_ad(del_ad_id):
+    filtering_ad_by_id(del_ad_id).is_deleted = True
+    db.session.add(filtering_ad_by_id(del_ad_id))
     db.session.commit()
     return {"data": {"message": "ad deleted"}}, 200
 
@@ -248,7 +248,7 @@ def create_ad():
         category_id=int(category_id)
     except ValueError:
         return {"data": {"error": "provide category id as integer"}},400
-    if create_ad_category_db(category_id) is None:
+    if checking_category_id_exist(category_id) is None:
         return {"data": {"error": "category id not found"}}, 400
     if not title:
         return {"data": {"error": "provide title"}}, 400
@@ -286,7 +286,7 @@ def create_ad():
         ad_plan_id=int(ad_plan_id)
     except ValueError:
         return {"data": {"error": "provide advertisement plan id as integer"}}, 400
-    if not create_ad_plan_db(ad_plan_id):
+    if not checking_adplan_exist(ad_plan_id):
         return {"data": {"error": "advertisement plan id not found"}}, 400
     if not location:
         return {"data": {"error": "provide location"}}, 400
@@ -312,9 +312,9 @@ def create_ad():
         return {"data": {"error": "provide valid email"}}, 400
     geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
 
-    return create_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo)
+    return saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo)
 
-def create_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo):
+def saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo):
     with Session(engine) as session:
         session.begin()
         try:
@@ -348,11 +348,11 @@ def create_ad_db(title,person,description,category_id,status,seller_type,price,a
             session.commit()
             return {"data": {"message": "ad created"}}
 
-def create_ad_category_db(category_id):
+def checking_category_id_exist(category_id):
     category=Category.query.filter_by(id=int(category_id)).first()
     return category
 
-def create_ad_plan_db(ad_plan_id):
+def checking_adplan_exist(ad_plan_id):
     plan=AdPlan.query.filter_by(id=ad_plan_id).first()
     return plan
 
@@ -431,7 +431,7 @@ def view_ad():
 @jwt_required()
 def update_ad(ads_id):
     person = get_jwt_identity()
-    if update_ad_id_db(ads_id,person):
+    if checking_person_posted_ad(ads_id,person):
         category_id = request.form.get("category_id")
         status = request.form.get("status")
         images = request.files.getlist('images')
@@ -459,7 +459,7 @@ def update_ad(ads_id):
             category_id=int(category_id)
         except ValueError:
             return {"data": {"error": "provide category id as integer"}}
-        if create_ad_category_db(category_id) is None:
+        if checking_category_id_exist(category_id) is None:
             return {"data": {"error": "category id not found"}}
         if not title:
             return {"data": {"error": "provide title"}}
@@ -497,7 +497,7 @@ def update_ad(ads_id):
             ad_plan_id=int(ad_plan_id)
         except ValueError:
             return {"data": {"error": "provide advertisement plan id as integer"}}
-        if not create_ad_plan_db(ad_plan_id):
+        if not checking_adplan_exist(ad_plan_id):
             return {"data": {"error": "advertisement plan id not found"}}
         if not location:
             return {"data": {"error": "provide location"}}
@@ -524,15 +524,15 @@ def update_ad(ads_id):
         if not check_email(email_id):
             return {"data": {"error": "provide valid email"}}
         geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
-        return update_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo)
+        return updating_ad_details(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo)
     else:
         return{"data": {"error": "only owner can edit ad"}}
 
-def update_ad_id_db(ads_id,person):
+def checking_person_posted_ad(ads_id,person):
     adv = Advertisement.query.filter_by(id=ads_id).first()
     return adv.user_id==person
 
-def update_ad_db(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo):
+def updating_ad_details(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo):
     try:
         adv = Advertisement.query.filter_by(id=ads_id).first()
         adv.title = title
