@@ -302,6 +302,8 @@ def create_ad():
         longitude = float(longitude)
     except ValueError:
         return {"data": {"error": "provide longitude as floating number"}}, 400
+    if not seller_name:
+        return {"data": {"error": "provide seller_name"}}, 400
     if not phone:
         return {"data":{"error": "provide phone number"}}, 400
     if not check_phone(phone):
