@@ -9,6 +9,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     hashed_password = db.Column(db.Text, nullable=False)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow())
 
@@ -19,10 +20,11 @@ class User(db.Model):
     # sender = db.relationship('Message', backref='user')
     # receiver = db.relationship('Message', backref='user')
 
-    def __init__(self, username, email, hashed_password):
+    def __init__(self, username, email, hashed_password, is_admin):
         self.username = username
         self.email = email
         self.hashed_password = hashed_password
+        self.is_admin = is_admin
 
     def __str__(self):
         return f"User with {self.username} created"

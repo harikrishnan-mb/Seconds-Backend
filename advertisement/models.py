@@ -1,7 +1,7 @@
-from user import models
+
 from datetime import datetime
 from database import get_db
-
+from geoalchemy2 import Geography
 db = get_db()
 
 
@@ -52,12 +52,14 @@ class Advertisement(db.Model):
     is_negotiable = db.Column(db.Boolean, default=False, nullable=False)
     is_featured = db.Column(db.Boolean, default=False, nullable=False)
     location = db.Column(db.Text)
-    latitude = db.Column(db.String(140))
-    longitude = db.Column(db.String(140))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    geo = db.Column(Geography(geometry_type="POINT", srid=4326))
     seller_name = db.Column(db.String(100))
-    phone = db.Column(db.BigInteger, unique=True, nullable=False)
+    phone = db.Column(db.BigInteger, nullable=False)
     email = db.Column(db.String(120), nullable=False)
-    advertising_id = db.Column(db.String(100))
+    advertising_id = db.Column(db.String(100), unique=True)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now())
 
@@ -68,7 +70,7 @@ class Advertisement(db.Model):
     # messages = db.relationship('Message', backref='advertisement')
 
     def __init__(self, title, status, seller_type, description, price, is_negotiable, is_featured, location, latitude,
-                 longitude, seller_name, phone, email, advertising_id, user_id, category_id, advertising_plan_id):
+                 longitude, geo, seller_name, phone, email,is_deleted, advertising_id, user_id, category_id, advertising_plan_id):
         self.title = title
         self.status = status
         self.seller_type = seller_type
@@ -80,15 +82,18 @@ class Advertisement(db.Model):
         self.latitude = latitude
         self.longitude = longitude
         self.seller_name = seller_name
+        self.geo=geo
         self.email = email
         self.phone = phone
         self.advertising_id = advertising_id
         self.user_id = user_id
         self.category_id = category_id
         self.advertising_plan_id = advertising_plan_id
+        self.is_deleted = is_deleted
 
     def __str__(self):
         return f"Ad with {self.title} created"
+
 
 
 class AdImage(db.Model):
@@ -100,11 +105,10 @@ class AdImage(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now())
     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
 
-    def __init__(self, display_order, file, is_cover_image, advertisement_id, ad_id):
+    def __init__(self, display_order, file, is_cover_image, ad_id):
         self.display_order = display_order
         self.file = file
         self.is_cover_image = is_cover_image
-        self.advertisement_id = advertisement_id
         self.ad_id = ad_id
 
     def __str__(self):
