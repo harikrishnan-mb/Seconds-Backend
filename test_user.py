@@ -5,6 +5,7 @@ try:
     from flask_jwt_extended import create_access_token, create_refresh_token
     import json
     from user.api import hashing_password
+    import redis
 except Exception as e:
     print('Some modules are missing {}'.format(e))
 
@@ -12,20 +13,21 @@ except Exception as e:
 class ApiTest1(unittest.TestCase):
     client=app.test_client()
     with app.app_context():
+        jwt_redis_blocklist = redis.StrictRedis(host="localhost", port=6379, db=0, decode_responses=True)
         access_token = dict(Authorization='Bearer ' + create_access_token(identity=1))
         refresh_token = dict(Authorization='Bearer ' + create_refresh_token(identity=1))
 
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup1(self, mock_user_profile_commit, mock_user_query, mock_user_mail_query):
+    def test_signup1(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "",
             "username": "testuser",
             "password": "Admin@123"}
-        mock_user_profile_commit.return_value = {"data": {"message": "user created"}}, 200
-        mock_user_query.return_value = None
-        mock_user_mail_query.return_value = None
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
         response = self.client.post("/user/signup", json=signup_obj)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
@@ -35,14 +37,14 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup2(self, mock_user_profile_commit, mock_user_query, mock_user_mail_query):
+    def test_signup2(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "testuser@yahoo.com",
             "username": "",
             "password": "Admin@123"}
-        mock_user_profile_commit.return_value = {"data": {"message": "user created"}}, 200
-        mock_user_query.return_value = None
-        mock_user_mail_query.return_value = None
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
         response = self.client.post("/user/signup", json=signup_obj)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
@@ -52,30 +54,31 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup3(self, mock_user_profile_commit, mock_user_query,mock_user_mail_query):
+    def test_signup3(self, mock_saving_user_to_db, mock_checking_username_exist,mock_checking_mail_exist):
         signup_obj = {
                       "email_id": "testuser@gmail.com",
                       "username": "testuser",
                       "password": "Admin@123"}
-        mock_user_profile_commit.return_value={"data": {"message": "user created"}}, 200
-        mock_user_query.return_value=None
-        mock_user_mail_query.return_value=None
+        mock_saving_user_to_db.return_value={"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value=None
+        mock_checking_mail_exist.return_value=None
         response=self.client.post("/user/signup", json=signup_obj)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'user created' in response.data)
 
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup4(self, mock_user_profile_commit, mock_user_query, mock_user_mail_query):
+    def test_signup4(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "",
             "username": "Testuser@1",
             "password": "Admin@123"}
-        mock_user_profile_commit.return_value = {"data": {"message": "user created"}}, 200
-        mock_user_query.return_value = None
-        mock_user_mail_query.return_value = None
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
         response = self.client.post("/user/signup", json=signup_obj)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
@@ -85,14 +88,14 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup5(self, mock_user_profile_commit, mock_user_query, mock_user_mail_query):
+    def test_signup5(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "testuser@gmail.com",
             "username": "Testuser1",
             "password": "Admin@123"}
-        mock_user_profile_commit.return_value = {"data": {"message": "user created"}}, 200
-        mock_user_query.return_value = "user"
-        mock_user_mail_query.return_value = None
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = "user"
+        mock_checking_mail_exist.return_value = None
         response = self.client.post("/user/signup", json=signup_obj)
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.content_type, "application/json")
@@ -102,14 +105,14 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup6(self, mock_user_profile_commit, mock_user_query, mock_user_mail_query):
+    def test_signup6(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "testuser@gmail.com",
             "username": "Testuser1",
             "password": "Admin@123"}
-        mock_user_profile_commit.return_value = {"data": {"message": "user created"}}, 200
-        mock_user_query.return_value = None
-        mock_user_mail_query.return_value = "email"
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = "email"
         response = self.client.post("/user/signup", json=signup_obj)
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.content_type, "application/json")
@@ -122,11 +125,11 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
-    def test_login1(self, mock_user_filter_db, mock_password_match, mock_checking_userpassword):
+    def test_login1(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
             "password": "Admin@123"}
-        mock_user_filter_db.return_value = None
+        mock_checking_username_exist.return_value = None
         mock_password_match.return_value = True
         mock_checking_userpassword.return_value = {"data": {"message": "Login successful"},
                                                    "tokens": {"access_token": "access token",
@@ -140,11 +143,11 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
-    def test_login2(self, mock_user_filter_db, mock_password_match, mock_checking_userpassword):
+    def test_login2(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
             "password": "Admin@123"}
-        mock_user_filter_db.return_value = "user"
+        mock_checking_username_exist.return_value = "user"
         mock_password_match.return_value = False
         mock_checking_userpassword.return_value = {"data": {"message": "Login successful"},
                                                    "tokens": {"access_token": "access token",
@@ -158,11 +161,11 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
-    def test_login3(self, mock_user_filter_db, mock_password_match, mock_checking_userpassword):
+    def test_login3(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
             "password": "Admin@123"}
-        mock_user_filter_db.return_value = "user"
+        mock_checking_username_exist.return_value = "user"
         mock_password_match.return_value = True
         mock_checking_userpassword.return_value={"data": {"message": "Login successful"},"tokens": {"access_token": "access token","refresh_token": "refresh token"}}, 200
         response = self.client.post("/user/login", json=login_obj)
@@ -172,6 +175,7 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'access token' in response.data)
         self.assertTrue(b'refresh token' in response.data)
         self.assertTrue(b'data' in response.data)
+
 
     def test_refresh1(self):
         response = self.client.get("/user/refresh", headers=self.refresh_token)
@@ -187,12 +191,12 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword1(self, mock_matching_password, mock_reset_password_db):
+    def test_resetpassword1(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@123",
             "new_password": "Admin@1234"}
         mock_matching_password.return_value = True
-        mock_reset_password_db.return_value = {"data": {"message": "password changed successfully"}}, 200
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
 
         response = self.client.put("/user/reset_password", json=reset_password_obj, headers= self.access_token)
         self.assertEqual(response.status_code, 200)
@@ -203,12 +207,12 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword2(self, mock_matching_password, mock_reset_password_db):
+    def test_resetpassword2(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "",
             "new_password": "Admin@1234"}
         mock_matching_password.return_value = True
-        mock_reset_password_db.return_value = {"data": {"message": "password changed successfully"}}, 200
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
 
         response = self.client.put("/user/reset_password", json=reset_password_obj, headers=self.access_token)
         self.assertEqual(response.status_code, 400)
@@ -219,12 +223,12 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword3(self, mock_matching_password, mock_reset_password_db):
+    def test_resetpassword3(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": ""}
         mock_matching_password.return_value = True
-        mock_reset_password_db.return_value = {"data": {"message": "password changed successfully"}}, 200
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
 
         response = self.client.put("/user/reset_password", json=reset_password_obj, headers=self.access_token)
         self.assertEqual(response.status_code, 400)
@@ -235,12 +239,12 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword4(self, mock_matching_password, mock_reset_password_db):
+    def test_resetpassword4(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": "Admin@1234"}
         mock_matching_password.return_value = True
-        mock_reset_password_db.return_value = {"data": {"message": "password changed successfully"}}, 200
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
 
         response = self.client.put("/user/reset_password", json=reset_password_obj, headers=self.access_token)
         self.assertEqual(response.status_code, 400)
@@ -251,12 +255,12 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword5(self, mock_matching_password, mock_reset_password_db):
+    def test_resetpassword5(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": "Admin1234"}
         mock_matching_password.return_value = True
-        mock_reset_password_db.return_value = {"data": {"message": "password changed successfully"}}, 200
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
 
         response = self.client.put("/user/reset_password", json=reset_password_obj, headers=self.access_token)
         self.assertEqual(response.status_code, 400)
@@ -267,12 +271,12 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword6(self, mock_matching_password, mock_reset_password_db):
+    def test_resetpassword6(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": "Admin1234"}
         mock_matching_password.return_value = False
-        mock_reset_password_db.return_value = {"data": {"message": "password changed successfully"}}, 200
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
 
         response = self.client.put("/user/reset_password", json=reset_password_obj, headers=self.access_token)
         self.assertEqual(response.status_code, 400)
@@ -280,6 +284,7 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'incorrect password' in response.data)
+
 
 if __name__=="__main__":
     unittest.main()

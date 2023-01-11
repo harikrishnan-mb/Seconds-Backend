@@ -1,14 +1,17 @@
 from flask import request, Blueprint
+from datetime import timedelta
 from messages import ErrorCodes
 from createapp import get_app
 import re
+import os
 from user.models import User, UserProfile
 from user.models import db
 import bcrypt
+import redis
+from werkzeug.utils import secure_filename
 from bcrypt import checkpw
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt
 from flask_jwt_extended import JWTManager
-import messages
 user = Blueprint('user', __name__)
 app = get_app()
 jwt = JWTManager(app)
@@ -40,13 +43,13 @@ def signup():
         return saving_user_to_db(username, email_id, password)
     except KeyError:
         return {"data": {"error" : ErrorCodes.provide_all_signup_keys.value["msg"],"error_id": ErrorCodes.provide_all_signup_keys.value["code"]}}, 400
+
 def checking_username_exist(username):
-    query=User.query.filter_by(username=username).first()
-    return query
+    return User.query.filter_by(username=username).first()
 
 def checking_mail_exist(email_id):
-    query=User.query.filter_by(email=email_id).first()
-    return query
+    return User.query.filter_by(email=email_id).first()
+
 
 def saving_user_to_db(username, email_id, password):
     user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
@@ -127,8 +130,8 @@ def login():
 
 
 def password_match(username,password):
-    validate_password=checking_2password(checking_username_exist(username).hashed_password, password)
-    return validate_password
+    return checking_2password(checking_username_exist(username).hashed_password, password)
+
 
 def checking_userpassword(username, password):
     user_in = User.query.filter_by(username=username).first()
@@ -136,13 +139,8 @@ def checking_userpassword(username, password):
         access_token = create_access_token(identity=user_in.id, fresh=True)
         refresh_token = create_refresh_token(identity=user_in.id)
         return {"data":
-                    {"message": "Login successful"},
-                "tokens": {"access_token": access_token,
-                           "refresh_token": refresh_token
-
-                           }
-                }, 200
-
+                    {"message": "Login successful"},"tokens": {"access_token": access_token,
+                           "refresh_token": refresh_token}}, 200
 
 @user.route('/refresh', methods=["GET"])
 @jwt_required(refresh=True)
@@ -176,19 +174,44 @@ def reset_password():
         return {"data": {"error": ErrorCodes.key_not_found.value["msg"], "error_id": ErrorCodes.key_not_found.value["code"]}}, 400
 
 def filter_user(user_id):
-    user_a = User.query.filter_by(id=user_id).first()
-    return user_a
+    return User.query.filter_by(id=user_id).first()
+
 
 def matching_password(user_id,current_password):
-    user_filter=checking_2password(filter_user(user_id).hashed_password, current_password)
-    return user_filter
+    return checking_2password(filter_user(user_id).hashed_password, current_password)
 
 def saving_new_password(user_id, new_password):
-    user_a = User.query.filter_by(id=user_id).first()
     filter_user(user_id).hashed_password = hashing_password(new_password)
     db.session.add(filter_user(user_id))
     db.session.commit()
     return {"data": {"message": "password changed successfully"}}, 200
+
+def check_phone(phone):
+    phone_num = "[6-9][0-9]{9}"
+    return re.fullmatch(phone_num, phone)
+
+jwt_redis_blocklist = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+
+@jwt.token_in_blocklist_loader
+def check_if_token_is_revoked(jwt_header, jwt_payload: dict):
+    jti = jwt_payload["jti"]
+    token_in_redis = jwt_redis_blocklist.get(jti)
+    return token_in_redis is not None
+
+@user.route("/logout", methods=["DELETE"])
+@jwt_required()
+def logout():
+    jti = get_jwt()["jti"]
+    jwt_redis_blocklist.set(jti, "", ex=timedelta(minutes=30))
+    return {"data":{"message":"Access token revoked"}}
+
+
+
+
+
+
+
+
 
 
 

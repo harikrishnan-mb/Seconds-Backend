@@ -16,6 +16,7 @@ def get_app():
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['UPLOAD_FOLDER'] = 'static/catagory'
         app.config['UPLOADED_ITEMS_DEST'] = '/home/qbuser/PycharmProjects/SecondsBackend'
+        app.config['UPLOADED_PROFILE_DEST'] = 'static/profile'
         app.config["JWT_SECRET_KEY"] = os.getenv("JWT")
         app.config['UPLOAD_AD_PICTURE'] = 'static/images_ad'
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)

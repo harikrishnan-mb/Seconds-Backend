@@ -1,7 +1,7 @@
 from flask import Blueprint,request
 import re
 from advertisement.models import db, Category, Advertisement, AdImage, AdPlan
-from user.api import check_email
+from user.api import check_email,check_phone
 from user.models import User
 from user.api import get_jwt_identity,jwt_required
 from geoalchemy2 import WKTElement
@@ -52,27 +52,24 @@ def delete_category(category_id):
     person = get_jwt_identity()
     if admin_is_true(person) is True:
         if filtering_category(category_id):
-            return category_delete(category_id)
+            try:
+                os.remove(os.path.join(app.config['UPLOADED_ITEMS_DEST'], filtering_category(category_id).image))
+            except:
+                pass
+            return deleting_the_category(category_id)
         else:
             return {"data": {"error": "category does not exist"}}
     else:
         return {"data": {"error": "only admin can access this route"}}
+
 def admin_is_true(person):
     filter_user = User.query.filter_by(id=person).first()
     return filter_user.is_admin
-def category_delete(category_id):
-    filter_category = Category.query.filter_by(id=category_id).first()
-    if filter_category:
-        try:
-            os.remove(os.path.join(app.config['UPLOADED_ITEMS_DEST'], filter_category.image))
-        except:
-            pass
-        db.session.delete(filter_category)
-        db.session.commit()
-        return {"data": {"message": "category removed"}}
-    else:
-        return {"data": {"error": "category does not exist"}}
 
+def deleting_the_category(category_id):
+    db.session.delete(filtering_category(category_id))
+    db.session.commit()
+    return {"data": {"message": "category removed"}}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'svg'}
@@ -96,26 +93,31 @@ def add_category():
                 parent_id=float(parent_id)
             except ValueError:
                 return {"data":{"error":"parent_id should be integer"}}
-        return add_categories(category,file,parent_id)
+        if checking_category_name_already_exist(category):
+            return {"data": {"error": "category already exist"}}
+        if parent_id:
+            if not checking_parent_id_exist(parent_id):
+                return {"data": {"error": "parent_id should be id of any category"}}
+            else:
+                category_add = Category(name=category, image="", parent_id=parent_id)
+        if not parent_id or parent_id == '':
+            if not allowed_file(file.filename):
+                return {"data": {"error": "image should be svg"}}
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                category_add = Category(name=category, image='static/catagory/' + filename, parent_id=None)
+        return adding_category_to_db(category_add)
     else:
         return {"data": {"error": "only admin can add category"}}, 400
-def add_categories(category,file,parent_id):
-    filter_category = Category.query.filter_by(name=category).first()
-    if filter_category:
-        return {"data": {"error": "category already exist"}}
-    if parent_id:
-        check_ids = Category.query.filter_by(id=parent_id).first()
-        if not check_ids:
-            return {"data": {"error": "parent_id should be id of any category"}}
-        else:
-            category_add = Category(name=category, image="", parent_id=parent_id)
-    if not parent_id or parent_id=='':
-        if not allowed_file(file.filename):
-            return {"data": {"error": "image should be svg"}}
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            category_add = Category(name=category, image='static/catagory/' + filename, parent_id=None)
+
+def checking_category_name_already_exist(category):
+    return Category.query.filter_by(name=category).first()
+
+def checking_parent_id_exist(parent_id):
+    return Category.query.filter_by(id=parent_id).first()
+
+def adding_category_to_db(category_add):
     db.session.add(category_add)
     db.session.commit()
     return {"data": {"message": "Category created"}}
@@ -131,6 +133,8 @@ def change_category(category_id):
             parent_id = request.form["parent_id"]
             if not category:
                 return {"data": {"error": "provide category name"}}
+            if checking_category_name_already_exist(category):
+                return {"data": {"error": "category already exist"}}
             if not file and not parent_id:
                 return {"data": {"error": "provide parent_id or file"}}
             if parent_id and file:
@@ -140,45 +144,41 @@ def change_category(category_id):
                     parent_id=float(parent_id)
                 except ValueError:
                     return {"data":{"error":"parent_id should be integer"}}
-            return change_categories(category_id,category,file,parent_id)
+            if parent_id:
+                # check_ids = Category.query.filter_by(id=parent_id).first()
+                if not checking_parent_id_exist(parent_id):
+                    return {"data": {"error": "parent_id should be id of any category"}}
+
+                filtering_category(category_id).name = category
+                filtering_category(category_id).image = ''
+                filtering_category(category_id).parent_id = parent_id
+            if not parent_id or parent_id == '':
+                if not allowed_file(file.filename):
+                    return {"data": {"error": "image should be svg"}}
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    filtering_category(category_id).name = category
+                    filtering_category(category_id).image = 'static/catagory/' + filename
+                    filtering_category(category_id).parent_id = None
+            return updating_category_in_db(category_id)
         else:
             return {"data": {"error": "category id does not exist"}}
     else:
         return {"data": {"error": "only admin can update category"}}, 400
 
-def change_categories(category_id,category,file,parent_id):
-    category_to_update = Category.query.filter_by(id=category_id).first()
-    filter_category = Category.query.filter_by(name=category).first()
-    if filter_category:
-        return {"data": {"error": "category already exist"}}
-    if parent_id:
-        check_ids = Category.query.filter_by(id=parent_id).first()
-        if not check_ids:
-            return {"data": {"error": "parent_id should be id of any category"}}
-
-        category_to_update.name = category
-        category_to_update.image = ''
-        category_to_update.parent_id = parent_id
-    if not parent_id or parent_id == '':
-        if not allowed_file(file.filename):
-            return {"data": {"error": "image should be svg"}}
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            category_to_update.name = category
-            category_to_update.image = 'static/catagory/' + filename
-            category_to_update.parent_id = None
-    db.session.add(category_to_update)
-    db.session.commit()
-    return {"data": {"message": "Category updated"}}
 
 def filtering_category(category_id):
      return Category.query.filter_by(id=category_id).first()
-
+def updating_category_in_db(category_id):
+    db.session.add(filtering_category(category_id))
+    db.session.commit()
+    return {"data": {"message": "Category updated"}}
 
 @ad.route("/ad_plan", methods=["GET"])
 def list_ad_plan():
     return ads_plan()
+
 def ads_plan():
     ad_plans = AdPlan.query.all()
     ad_plan_list = []
@@ -186,13 +186,13 @@ def ads_plan():
         ad_plan_name = {"id": ad_plan.id, "price": ad_plan.price, "days": ad_plan.days}
         ad_plan_list.append(ad_plan_name)
     return {"data": {"message": ad_plan_list}}, 200
+
 def allowed_img_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}
+
 def generate_random_text():
     return ''.join(secrets.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(20))
-def check_phone(phone):
-    phone_num = "[6-9][0-9]{9}"
-    return re.fullmatch(phone_num, phone)
+
 
 @ad.route("/delete_ad/<int:del_ad_id>", methods=["DELETE"])
 @jwt_required()
@@ -224,6 +224,7 @@ def create_ad():
     category_id = request.form.get("category_id")
     status = request.form.get("status")
     images = request.files.getlist('images')
+    print(images)
     title = request.form.get("title")
     seller_type = request.form.get("seller_type")
     description = request.form.get("description")
@@ -239,17 +240,17 @@ def create_ad():
     email_id = request.form.get("email_id")
     if not category_id:
         return {"data":{"error": "provide category id"}}, 400
-    for image in images:
-        if image.filename == '':
-            return {"data":{"error": "provide image"}}, 400
-        if image and not allowed_img_file(image.filename):
-            return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
     try:
         category_id=int(category_id)
     except ValueError:
         return {"data": {"error": "provide category id as integer"}},400
     if checking_category_id_exist(category_id) is None:
         return {"data": {"error": "category id not found"}}, 400
+    for image in images:
+        if not image:
+            return {"data": {"error": "provide image"}}, 400
+        if image and not allowed_img_file(image.filename):
+            return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
     if not title:
         return {"data": {"error": "provide title"}}, 400
     if not status:
@@ -317,6 +318,8 @@ def create_ad():
     return saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo)
 
 def saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo):
+    if not images:
+        return {"data":{"error": "image field is required"}}, 400
     with Session(engine) as session:
         session.begin()
         try:
@@ -345,10 +348,12 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
                 session.add(ad_image_1)
         except:
             session.rollback()
+            session.close()
             return {"data": {"error": "error uploading image"}}
         else:
             session.commit()
             return {"data": {"message": "ad created"}}
+
 
 def checking_category_id_exist(category_id):
     category=Category.query.filter_by(id=int(category_id)).first()
@@ -407,24 +412,32 @@ def view_ad():
     if "search" in request.args:
         search = request.args["search"]
         search_lists=search.split(' ')
-        search_query = None
-        for search_list in search_lists:
-            ads=Advertisement.query.filter(func.lower(Advertisement.title).contains(func.lower(search_list))).first()
-            if not ads:
-                categories = Category.query.filter(func.lower(Category.name) == (func.lower(search_list))).first()
-                if categories:
-                    search_query = Advertisement.category_id == categories.id
+        searching_the_ad(search_lists,filter_list)
 
-            else:
-                search_query = func.lower(Advertisement.title).contains(func.lower(search_list))
-            filter_list.append(search_query)
-
-
-    advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).all()
     list_ad = []
+    return listing_the_ad(filter_list,sorts,list_ad)
+
+def searching_the_ad(search_lists,filter_list):
+    for search_list in search_lists:
+        ads = Advertisement.query.filter(func.lower(Advertisement.title).contains(func.lower(search_list))).first()
+        if not ads:
+            categories = Category.query.filter(func.lower(Category.name) == (func.lower(search_list))).first()
+            if categories:
+                search_query = Advertisement.category_id == categories.id
+            else:
+                search_query=None
+        else:
+            search_query = func.lower(Advertisement.title).contains(func.lower(search_list))
+        filter_list.append(search_query)
+        return filter_list
+
+def listing_the_ad(filter_list,sorts,list_ad):
+    advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).all()
     for advertisement in advertisements:
         ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
-        ad_filter = {"id": advertisement.id,"title": advertisement.title, "cover image": os.getenv('HOME_ROUTE')+ ad_images.file, "featured": advertisement.is_featured, "location": advertisement.location, "price": advertisement.price}
+        ad_filter = {"id": advertisement.id, "title": advertisement.title,
+                     "cover image": os.getenv('HOME_ROUTE') + ad_images.file, "featured": advertisement.is_featured,
+                     "location": advertisement.location, "price": advertisement.price}
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad}}
 
@@ -517,6 +530,8 @@ def update_ad(ads_id):
             return {"data": {"error": "provide longitude as floating number"}}
         if  float(longitude) is False:
             return {"data": {"error": "provide longitude as floating number"}}
+        if not seller_name:
+            return {"data": {"error": "provide seller_name"}}
         if not phone:
             return {"data":{"error": "provide phone number"}}
         if not check_phone(phone):
@@ -535,6 +550,8 @@ def checking_person_posted_ad(ads_id,person):
     return adv.user_id==person
 
 def updating_ad_details(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo):
+    if not images:
+        return {"data":{"error": "image field is required"}}, 400
     try:
         adv = Advertisement.query.filter_by(id=ads_id).first()
         adv.title = title
@@ -553,7 +570,7 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
         adv.phone = phone
         adv.email = email_id
         adv.geo = geo
-        ad_images = AdImage.query.filter_by(ad_id=adv.id).all()
+        ad_images = AdImage.query.filter_by(ad_id=ads_id).all()
         for ad_image in ad_images:
             db.session.delete(ad_image)
         for image in images:
