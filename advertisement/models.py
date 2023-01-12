@@ -60,8 +60,8 @@ class Advertisement(db.Model):
     email = db.Column(db.String(120), nullable=False)
     advertising_id = db.Column(db.String(100), unique=True)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, default=datetime.now())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow())
 
     # Relationship
     report_ads = db.relationship('ReportAd', backref='advertisement')

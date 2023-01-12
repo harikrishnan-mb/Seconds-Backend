@@ -53,10 +53,9 @@ def checking_mail_exist(email_id):
 
 def saving_user_to_db(username, email_id, password):
     user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
-    profile_1 = UserProfile(None, None, None, None, user_id=user_1.id)
-
     db.session.add(user_1)
     db.session.commit()
+    profile_1 = UserProfile(None, None, None, photo='static/profile/default.png', user_id=user_1.id)
     db.session.add(profile_1)
     db.session.commit()
     return {"data": {"message": "user created"}}, 200
@@ -205,6 +204,69 @@ def logout():
     jwt_redis_blocklist.set(jti, "", ex=timedelta(minutes=30))
     return {"data":{"message":"Access token revoked"}}
 
+def allowed_profile_image_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}
+
+@user.route('/update_profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id=get_jwt_identity()
+    photo=request.files.get('photo')
+    name=request.form.get('name')
+    email_id=request.form.get('email_id')
+    phone = request.form.get('phone')
+    address = request.form.get('address')
+    if not name:
+        return {'data': {'error': 'provide name'}}
+    if not email_id:
+        return {'data': {'error': 'provide email_id'}}
+    if not email_id:
+        return {'data': {'error': 'provide email_id'}}
+    if not check_email(email_id):
+        return {'data': {'error': 'provide valid email_id'}}
+    if checking_new_and_old_mail_not_same(user_id,email_id):
+        if checking_mail_exist(email_id):
+            return {"data": {"message":"email id already exist"}}
+        else:
+            filter_user(user_id).email = email_id
+    if not phone:
+        return {'data': {'error': 'provide phone number'}}
+    if not check_phone(phone):
+        return {'data': {'error': 'phone number not valid'}}
+    if not address:
+        return {'data': {'error': 'provide address'}}
+    if not photo:
+        photo_url='static/profile/default.png'
+    if photo and not allowed_profile_image_file(photo.filename):
+        return {'data': {'error': 'image should be in png, jpg or jpeg format'}}
+    if photo and allowed_profile_image_file(photo.filename):
+        filename = secure_filename(photo.filename)
+        photo.save(os.path.join(app.config['UPLOADED_PROFILE_DEST'], filename))
+        photo_url = 'static/profile/' + filename
+    return saving_updated_profile(user_id, photo_url, name, phone, address)
+
+def checking_new_and_old_mail_not_same(user_id,email_id):
+    return filter_user(user_id).email != email_id
+
+def saving_updated_profile(user_id, photo_url, name, phone, address):
+    user_profile = UserProfile.query.filter_by(user_id=user_id).first()
+    user_profile.photo = photo_url
+    user_profile.name = name
+    user_profile.phone = phone
+    user_profile.address = address
+    db.session.add(user_profile)
+    db.session.add(filter_user(user_id))
+    db.session.commit()
+    return {'data': {'message': 'profile updated successfully'}}
+
+@user.route('/profile', methods=['GET'])
+@jwt_required()
+def view_profile():
+    user_id=get_jwt_identity()
+    return displaying_user_profile(user_id)
+def displaying_user_profile(user_id):
+    user_profile=UserProfile.query.filter_by(user_id=user_id).first()
+    return {"data":{"message": [{"name": user_profile.name, "photo": os.getenv("HOME_ROUTE")+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
 
 
 

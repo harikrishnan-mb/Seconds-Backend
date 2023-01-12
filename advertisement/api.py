@@ -6,6 +6,7 @@ from user.models import User
 from user.api import get_jwt_identity,jwt_required
 from geoalchemy2 import WKTElement
 import os
+from datetime import datetime, timedelta
 import secrets
 import string
 from sqlalchemy.orm import Session
@@ -224,7 +225,6 @@ def create_ad():
     category_id = request.form.get("category_id")
     status = request.form.get("status")
     images = request.files.getlist('images')
-    print(images)
     title = request.form.get("title")
     seller_type = request.form.get("seller_type")
     description = request.form.get("description")
@@ -277,18 +277,19 @@ def create_ad():
         return {"data": {"error": "provide product is featured or not"}}, 400
     if feature_product.capitalize()=="True":
         feature_product=True
+        if not ad_plan_id:
+            return {"data": {"error": "provide advertisement plan id"}}, 400
+        try:
+            ad_plan_id = int(ad_plan_id)
+        except ValueError:
+            return {"data": {"error": "provide advertisement plan id as integer"}}, 400
+        if not checking_adplan_exist(ad_plan_id):
+            return {"data": {"error": "advertisement plan id not found"}}, 400
     elif feature_product.capitalize()=="False":
         feature_product=False
+        ad_plan_id=None
     else:
         return {"data": {"error": "provide product is featured or not as True or False"}}, 400
-    if not ad_plan_id:
-        return {"data": {"error": "provide advertisement plan id"}}, 400
-    try:
-        ad_plan_id=int(ad_plan_id)
-    except ValueError:
-        return {"data": {"error": "provide advertisement plan id as integer"}}, 400
-    if not checking_adplan_exist(ad_plan_id):
-        return {"data": {"error": "advertisement plan id not found"}}, 400
     if not location:
         return {"data": {"error": "provide location"}}, 400
     if not latitude:
@@ -432,11 +433,18 @@ def searching_the_ad(search_lists,filter_list):
         return filter_list
 
 def listing_the_ad(filter_list,sorts,list_ad):
+    adv=Advertisement.query.filter_by(is_featured=True).all()
+    for ads in adv:
+        plan=AdPlan.query.filter_by(id=ads.advertising_plan_id).first()
+        if datetime.utcnow()-ads.created_at>timedelta(days=plan.days):
+            ads.is_featured=False
+            db.session.add(ads)
+            db.session.commit()
     advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).all()
     for advertisement in advertisements:
         ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
         ad_filter = {"id": advertisement.id, "title": advertisement.title,
-                     "cover image": os.getenv('HOME_ROUTE') + ad_images.file, "featured": advertisement.is_featured,
+                     "cover_image": os.getenv('HOME_ROUTE') + ad_images.file, "featured": advertisement.is_featured,
                      "location": advertisement.location, "price": advertisement.price}
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad}}
@@ -502,18 +510,19 @@ def update_ad(ads_id):
             return {"data": {"error": "provide product is featured or not"}}
         if feature_product.capitalize()=="True":
             feature_product=True
+            if not ad_plan_id:
+                return {"data": {"error": "provide advertisement plan id"}}
+            try:
+                ad_plan_id = int(ad_plan_id)
+            except ValueError:
+                return {"data": {"error": "provide advertisement plan id as integer"}}
+            if not checking_adplan_exist(ad_plan_id):
+                return {"data": {"error": "advertisement plan id not found"}}
         elif feature_product.capitalize()=="False":
             feature_product=False
+            ad_plan_id=None
         else:
             return {"data": {"error": "provide product is featured or not as True or False"}}
-        if not ad_plan_id:
-            return {"data": {"error": "provide advertisement plan id"}}
-        try:
-            ad_plan_id=int(ad_plan_id)
-        except ValueError:
-            return {"data": {"error": "provide advertisement plan id as integer"}}
-        if not checking_adplan_exist(ad_plan_id):
-            return {"data": {"error": "advertisement plan id not found"}}
         if not location:
             return {"data": {"error": "provide location"}}
         if not latitude:
@@ -570,6 +579,7 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
         adv.phone = phone
         adv.email = email_id
         adv.geo = geo
+        adv.updated_at=datetime.utcnow()
         ad_images = AdImage.query.filter_by(ad_id=ads_id).all()
         for ad_image in ad_images:
             db.session.delete(ad_image)

@@ -285,6 +285,174 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'incorrect password' in response.data)
 
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile1(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Test Person",
+            "email_id": "test@gmail.com",
+            "phone": "6887779999",
+            "address": "address"}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value=True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'profile updated successfully' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile2(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                            mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Test Person",
+            "email_id": "test",
+            "phone": "6887779999",
+            "address": "address"}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'provide valid email' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile3(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                            mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Test Person",
+            "email_id": "test@gmail.com",
+            "phone": "6787813999",
+            "address": ""}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'provide address' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile4(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                            mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Test Person",
+            "email_id": "",
+            "phone": "6787813999",
+            "address": "address"}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'provide email' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile5(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                             mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "",
+            "email_id": "test@gmail.com",
+            "phone": "9876567898",
+            "address": "address"}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'provide name' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile6(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                             mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Demo",
+            "email_id": "test@gmail.com",
+            "phone": "9",
+            "address": "address"}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'phone number not valid' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile_1(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                             mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Demo",
+            "email_id": "test@gmail.com",
+            "phone": "",
+            "address": "address"}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'provide phone' in response.data)
+
+    @patch('user.api.displaying_user_profile')
+    def test_get_profile(self, mock_displaying_user_profile):
+        mock_displaying_user_profile.return_value = {"data": {"message": [
+            {
+                "address": "address",
+                "email_id": "admin1@gmail.com",
+                "name": "Admin11",
+                "phone": 9999999999,
+                "photo": "http://10.6.9.26:5000/static/profile/default.png"
+            }
+        ]}}
+
+        response = self.client.get("/user/profile", headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'address' in response.data)
+        self.assertTrue(b'email_id' in response.data)
+        self.assertTrue(b'phone' in response.data)
+        self.assertTrue(b'photo' in response.data)
+        self.assertTrue(b'name' in response.data)
 
 if __name__=="__main__":
     unittest.main()
