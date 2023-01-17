@@ -23,7 +23,7 @@ def get_app():
         if os.getenv('ENV')=='dev':
             app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE')
         if os.getenv('ENV')=='prod':
-            app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('Database')
+            app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE')
         app.config['S3_BUCKET'] = os.getenv('S3_BUCKET_NAME')
         app.config['S3_KEY'] = os.getenv("AWS_ACCESS_KEY")
         app.config['S3_SECRET'] = os.getenv("AWS_ACCESS_SECRET")
