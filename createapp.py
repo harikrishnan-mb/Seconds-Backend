@@ -11,7 +11,6 @@ def get_app():
         app = Flask(__name__)
         app.config['DEBUG'] = False
         app.config['TESTING'] = True
-        app.config['SECRET KEY'] = os.getenv("SECONDS")
         app.config['SQLALCHEMY_ECHO'] = False
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['UPLOAD_FOLDER'] = 'static/catagory'
@@ -21,7 +20,10 @@ def get_app():
         app.config['UPLOAD_AD_PICTURE'] = 'static/images_ad'
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost/seconds'
+        if os.getenv('ENV')=='dev':
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost/seconds'
+        if os.getenv('ENV')=='prod':
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/seconds'
         app.config['S3_BUCKET'] = os.getenv('S3_BUCKET_NAME')
         app.config['S3_KEY'] = os.getenv("AWS_ACCESS_KEY")
         app.config['S3_SECRET'] = os.getenv("AWS_ACCESS_SECRET")

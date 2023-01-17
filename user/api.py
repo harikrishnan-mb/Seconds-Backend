@@ -242,16 +242,18 @@ def update_profile():
         return {'data': {'error': 'image should be in png, jpg or jpeg format'}}
     if photo and allowed_profile_image_file(photo.filename):
         filename = str(user_id)+secure_filename(photo.filename)
-        # photo.save(os.path.join(app.config['UPLOADED_PROFILE_DEST'], filename))
-        s3.upload_fileobj(
-            photo,
-            app.config['S3_BUCKET'],
-            'static/profile/'+filename,
-            ExtraArgs={
-                "ACL": "public-read",
-                "ContentType": photo.content_type
-            }
-        )
+        if os.getenv('ENV')=='dev':
+            photo.save(os.path.join(app.config['UPLOADED_PROFILE_DEST'], filename))
+        else:
+            s3.upload_fileobj(
+                photo,
+                app.config['S3_BUCKET'],
+                'static/profile/'+filename,
+                ExtraArgs={
+                    "ACL": "public-read",
+                    "ContentType": photo.content_type
+                }
+            )
         photo_url = 'static/profile/' + filename
     return saving_updated_profile(user_id, photo_url, name, phone, address)
 
@@ -276,29 +278,11 @@ def view_profile():
     return displaying_user_profile(user_id)
 def displaying_user_profile(user_id):
     user_profile=UserProfile.query.filter_by(user_id=user_id).first()
-    return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
-    # return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
+    if os.getenv('ENV')=='prod':
+        return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
+    if os.getenv('ENV') == 'dev':
+        return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
 
-# @user.route('/upload_images', methods=['POST'])
-# def update_profile1():
-#     photo=request.files.get('photo')
-#     if photo and allowed_profile_image_file(photo.filename):
-#         filename = secure_filename(photo.filename)
-#         s3.upload_fileobj(
-#              photo,
-#              app.config['S3_BUCKET'],
-#              'static/profile/'+filename,
-#             ExtraArgs={
-#                     "ACL": "public-read",
-#                     "ContentType": photo.content_type
-#             })
-#         photo_url = 'static/profile/' + filename
-#         return "IMAGE_UPLOADED"
-#
-# @user.route('/upload', methods=['GET'])
-# def update_profile2():
-#
-#     return {"IMAGE": app.config['S3_LOCATION']+'static/profile/download.jpeg'}
 
 
 
