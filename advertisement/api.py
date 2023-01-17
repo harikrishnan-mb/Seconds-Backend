@@ -238,6 +238,7 @@ def create_ad():
     seller_name = request.form.get("seller_name")
     phone = request.form.get("phone")
     email_id = request.form.get("email_id")
+    print(images)
     if not category_id:
         return {"data":{"error": "provide category id"}}, 400
     try:
@@ -335,6 +336,7 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
                                  advertising_id=generate_random_text(), geo=geo)
 
             session.add(ad_1)
+
             for image in images:
                 display_order = images.index(image) + 1
                 if images.index(image) == 0:
@@ -342,9 +344,9 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
                 else:
                     cover_image = False
                 filename = secure_filename(image.filename)
-                image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
+                image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], ad_1.advertising_id+filename))
                 session.commit()
-                ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename,
+                ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' +ad_1.advertising_id+ filename,
                                      is_cover_image=cover_image, ad_id=ad_1.id)
                 session.add(ad_image_1)
         except:
@@ -590,14 +592,174 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
             else:
                 cover_image = False
             filename = secure_filename(image.filename)
-            image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
-            ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename,
+            image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], adv.advertising_id+filename))
+            ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' +adv.advertising_id+ filename,
                                  is_cover_image=cover_image, ad_id=adv.id)
             db.session.add(ad_image_1)
         db.session.commit()
         return {"data": {"message": "ad edited successfully"}}
     except:
         return {"data": {"error": "error uploading image"}}
+
+# @ad.route("/create_ad", methods=["POST"])
+# @jwt_required()
+# def create_ad():
+#     person = get_jwt_identity()
+#     category_id = request.form.get("category_id")
+#     status = request.form.get("status")
+#     images = request.files.getlist('images')
+#     images1 = request.files.get('images1')
+#     images2 = request.files.get('images2')
+#     images3 = request.files.get('images3')
+#     title = request.form.get("title")
+#     seller_type = request.form.get("seller_type")
+#     description = request.form.get("description")
+#     price = request.form.get("price")
+#     ad_plan_id = request.form.get("ad_plan_id")
+#     negotiable_product = request.form.get("negotiable_product")
+#     feature_product = request.form.get("feature_product")
+#     location = request.form.get("location")
+#     latitude = request.form.get("latitude")
+#     longitude = request.form.get("longitude")
+#     seller_name = request.form.get("seller_name")
+#     phone = request.form.get("phone")
+#     email_id = request.form.get("email_id")
+#     if not category_id:
+#         return {"data":{"error": "provide category id"}}, 400
+#     try:
+#         category_id=int(category_id)
+#     except ValueError:
+#         return {"data": {"error": "provide category id as integer"}},400
+#     if checking_category_id_exist(category_id) is None:
+#         return {"data": {"error": "category id not found"}}, 400
+#     # for image in images:
+#     #     if not image:
+#     #         return {"data": {"error": "provide image"}}, 400
+#     #     if image and not allowed_img_file(image.filename):
+#     #         return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
+#     if not title:
+#         return {"data": {"error": "provide title"}}, 400
+#     if not status:
+#         status='active'
+#     if not seller_type:
+#         return {"data": {"error": "provide seller_type"}}, 400
+#     if not description:
+#         description=''
+#     if not price:
+#         return {"data": {"error": "provide price"}}, 400
+#     try:
+#         price = float(price)
+#     except ValueError:
+#         return {"data": {"error": "provide price as floating number"}}, 400
+#     if not negotiable_product:
+#         return {"data": {"error": "provide product is negotiable or not"}}, 400
+#     if negotiable_product.capitalize()=="True":
+#         negotiable_product=True
+#     elif negotiable_product.capitalize()=="False":
+#         negotiable_product=False
+#     else:
+#         return {"data": {"error": "provide product is negotiable or not as True or False"}}, 400
+#     if not feature_product:
+#         return {"data": {"error": "provide product is featured or not"}}, 400
+#     if feature_product.capitalize()=="True":
+#         feature_product=True
+#         if not ad_plan_id:
+#             return {"data": {"error": "provide advertisement plan id"}}, 400
+#         try:
+#             ad_plan_id = int(ad_plan_id)
+#         except ValueError:
+#             return {"data": {"error": "provide advertisement plan id as integer"}}, 400
+#         if not checking_adplan_exist(ad_plan_id):
+#             return {"data": {"error": "advertisement plan id not found"}}, 400
+#     elif feature_product.capitalize()=="False":
+#         feature_product=False
+#         ad_plan_id=None
+#     else:
+#         return {"data": {"error": "provide product is featured or not as True or False"}}, 400
+#     if not location:
+#         return {"data": {"error": "provide location"}}, 400
+#     if not latitude:
+#         return {"data": {"error": "provide latitude"}}, 400
+#     try:
+#         latitude = float(latitude)
+#     except ValueError:
+#         return {"data": {"error": "provide latitude as floating number"}}, 400
+#     if not longitude:
+#         return {"data": {"error": "provide longitude"}}, 400
+#     try:
+#         longitude = float(longitude)
+#     except ValueError:
+#         return {"data": {"error": "provide longitude as floating number"}}, 400
+#     if not seller_name:
+#         return {"data": {"error": "provide seller_name"}}, 400
+#     if not phone:
+#         return {"data":{"error": "provide phone number"}}, 400
+#     if not check_phone(phone):
+#         return {"data": {"error": "provide valid phone number"}}, 400
+#     if not email_id:
+#         return {"data": {"error": "provide email"}}, 400
+#     if not check_email(email_id):
+#         return {"data": {"error": "provide valid email"}}, 400
+#     geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
+#
+#     return saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo,images1, images2, images3)
+#
+# def saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo, images1, images2, images3):
+#     # if not images:
+#     #     return {"data":{"error": "image field is required"}}, 400
+#     if not images1:
+#         return {"data":{"error": "least one image is required"}}, 400
+#     if images1 and not allowed_img_file(images1.filename):
+#         return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
+#     with Session(engine) as session:
+#         session.begin()
+#         try:
+#
+#             ad_1 = Advertisement(title=title, user_id=get_jwt_identity(),
+#                                  description=description, category_id=category_id,
+#                                  status=status, seller_type=seller_type,
+#                                  price=price, advertising_plan_id=ad_plan_id, is_deleted=False,
+#                                  is_negotiable=negotiable_product, is_featured=feature_product,
+#                                  location=location, latitude=latitude, longitude=longitude,
+#                                  seller_name=seller_name, phone=phone, email=email_id,
+#                                  advertising_id=generate_random_text(), geo=geo)
+#
+#             session.add(ad_1)
+#             session.commit()
+#             if images1 and allowed_img_file(images1.filename):
+#                 filename = secure_filename(images1.filename)
+#                 ad_image_1 = AdImage(display_order=1,file='static/images_ad/' + ad_1.advertising_id + filename,
+#                                          is_cover_image=True, ad_id=ad_1.id)
+#                 session.add(ad_image_1)
+#             elif not allowed_img_file(images1.filename):
+#                 session.delete(ad_1)
+#                 session.commit()
+#                 return {"data": {"error": "image should be in png, jpg or jpeg format"}}, 400
+#             if images2 and allowed_img_file(images2.filename):
+#                 filename = secure_filename(images2.filename)
+#                 ad_image_2 = AdImage(display_order=2,file='static/images_ad/' + ad_1.advertising_id + filename,
+#                                          is_cover_image=False, ad_id=ad_1.id)
+#                 session.add(ad_image_2)
+#             elif images2 and not allowed_img_file(images2.filename):
+#                 session.delete(ad_1)
+#                 session.commit()
+#                 return {"data": {"error": "image should be in png, jpg or jpeg format"}}, 400
+#             if images3 and allowed_img_file(images3.filename):
+#                 filename = secure_filename(images3.filename)
+#                 ad_image_3 = AdImage(display_order=3,file='static/images_ad/' + ad_1.advertising_id + filename,
+#                                          is_cover_image=False, ad_id=ad_1.id)
+#                 session.add(ad_image_3)
+#             elif images3 and not allowed_img_file(images3.filename):
+#                 session.delete(ad_1)
+#                 session.commit()
+#                 return {"data": {"error": "image should be in png, jpg or jpeg format"}}, 400
+#             session.commit()
+#             return {"data": {"message": "ad created"}}
+#         except:
+#             session.rollback()
+#             session.close()
+#             return {"data": {"error": "error uploading image"}}
+
 
 
 

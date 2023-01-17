@@ -8,6 +8,7 @@ from user.models import User, UserProfile
 from user.models import db
 import bcrypt
 import redis
+from s3config import s3
 from werkzeug.utils import secure_filename
 from bcrypt import checkpw
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt
@@ -55,7 +56,7 @@ def saving_user_to_db(username, email_id, password):
     user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
     db.session.add(user_1)
     db.session.commit()
-    profile_1 = UserProfile(None, None, None, photo='static/profile/default.png', user_id=user_1.id)
+    profile_1 = UserProfile(None, None, None, photo='static/profile/profile.jpg', user_id=user_1.id)
     db.session.add(profile_1)
     db.session.commit()
     return {"data": {"message": "user created"}}, 200
@@ -236,12 +237,21 @@ def update_profile():
     if not address:
         return {'data': {'error': 'provide address'}}
     if not photo:
-        photo_url='static/profile/default.png'
+        photo_url=UserProfile.query.filter_by(user_id=user_id).first().photo
     if photo and not allowed_profile_image_file(photo.filename):
         return {'data': {'error': 'image should be in png, jpg or jpeg format'}}
     if photo and allowed_profile_image_file(photo.filename):
-        filename = secure_filename(photo.filename)
+        filename = str(user_id)+secure_filename(photo.filename)
         photo.save(os.path.join(app.config['UPLOADED_PROFILE_DEST'], filename))
+        # s3.upload_fileobj(
+        #     photo,
+        #     app.config['S3_BUCKET'],
+        #     'static/profile/'+filename,
+        #     ExtraArgs={
+        #         "ACL": "public-read",
+        #         "ContentType": photo.content_type
+        #     }
+        # )
         photo_url = 'static/profile/' + filename
     return saving_updated_profile(user_id, photo_url, name, phone, address)
 
@@ -266,9 +276,29 @@ def view_profile():
     return displaying_user_profile(user_id)
 def displaying_user_profile(user_id):
     user_profile=UserProfile.query.filter_by(user_id=user_id).first()
-    return {"data":{"message": [{"name": user_profile.name, "photo": os.getenv("HOME_ROUTE")+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
+    # return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
+    return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
 
-
+# @user.route('/upload_images', methods=['POST'])
+# def update_profile1():
+#     photo=request.files.get('photo')
+#     if photo and allowed_profile_image_file(photo.filename):
+#         filename = secure_filename(photo.filename)
+#         s3.upload_fileobj(
+#              photo,
+#              app.config['S3_BUCKET'],
+#              'static/profile/'+filename,
+#             ExtraArgs={
+#                     "ACL": "public-read",
+#                     "ContentType": photo.content_type
+#             })
+#         photo_url = 'static/profile/' + filename
+#         return "IMAGE_UPLOADED"
+#
+# @user.route('/upload', methods=['GET'])
+# def update_profile2():
+#
+#     return {"IMAGE": app.config['S3_LOCATION']+'static/profile/download.jpeg'}
 
 
 

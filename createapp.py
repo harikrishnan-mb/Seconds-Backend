@@ -22,4 +22,8 @@ def get_app():
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost/seconds'
+        app.config['S3_BUCKET'] = os.getenv('S3_BUCKET_NAME')
+        app.config['S3_KEY'] = os.getenv("AWS_ACCESS_KEY")
+        app.config['S3_SECRET'] = os.getenv("AWS_ACCESS_SECRET")
+        app.config['S3_LOCATION'] = 'https://seconds-web.s3.ap-northeast-1.amazonaws.com/'
     return app
