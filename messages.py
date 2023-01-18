@@ -17,3 +17,4 @@ class ErrorCodes(Enum):
     provide_new_password={'msg': "provide new password", 'code':1015}
     new_password_should_not_be_same_as_previous_password={'msg': "new password should not be same as previous password", 'code':1017}
     key_not_found={'msg': "key not found", 'code':1018}
+    image_field_is_required={'msg': "image field is required", 'code':1019}

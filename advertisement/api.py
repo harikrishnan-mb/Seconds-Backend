@@ -5,6 +5,7 @@ from user.api import check_email,check_phone
 from user.models import User, UserProfile
 from user.api import get_jwt_identity,jwt_required
 from geoalchemy2 import WKTElement
+from messages import ErrorCodes
 import os
 from datetime import datetime, timedelta
 import secrets
@@ -321,7 +322,7 @@ def create_ad():
 
 def saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo):
     if not images:
-        return {"data":{"error": "image field is required"}}, 400
+        return {"data":{"error": ErrorCodes.image_field_is_required.value['msg'], 'error_id': ErrorCodes.image_field_is_required.value['code']}}, 400
     with Session(engine) as session:
         session.begin()
         try:
@@ -377,9 +378,9 @@ def checking_adplan_exist(ad_plan_id):
     plan=AdPlan.query.filter_by(id=ad_plan_id).first()
     return plan
 
-
-@ad.route("/view_ad", methods=["GET"])
-def view_ad():
+@ad.route("/view_ad", methods=["GET"], defaults={"page": 1})
+@ad.route("/view_ad/<int:page>", methods=["GET"])
+def view_ad(page):
     sorts=[Advertisement.is_featured.desc()]
     filter_list= [Advertisement.status=="active", Advertisement.is_deleted==False]
 
@@ -429,7 +430,7 @@ def view_ad():
         searching_the_ad(search_lists,filter_list)
 
     list_ad = []
-    return listing_the_ad(filter_list,sorts,list_ad)
+    return listing_the_ad(filter_list,sorts,list_ad, page)
 
 def searching_the_ad(search_lists,filter_list):
     for search_list in search_lists:
@@ -445,7 +446,7 @@ def searching_the_ad(search_lists,filter_list):
         filter_list.append(search_query)
         return filter_list
 
-def listing_the_ad(filter_list,sorts,list_ad):
+def listing_the_ad(filter_list,sorts,list_ad, page):
     adv=Advertisement.query.filter_by(is_featured=True).all()
     for ads in adv:
         plan=AdPlan.query.filter_by(id=ads.advertising_plan_id).first()
@@ -453,7 +454,7 @@ def listing_the_ad(filter_list,sorts,list_ad):
             ads.is_featured=False
             db.session.add(ads)
             db.session.commit()
-    advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).all()
+    advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).paginate(page=page,per_page=12,error_out=False)
     for advertisement in advertisements:
         ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
         if os.getenv('ENV')=='dev':
