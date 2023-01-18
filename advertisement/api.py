@@ -644,8 +644,8 @@ def details_of_ad(ad_id):
         images = os.getenv('HOME_ROUTE') + owner_ad.photo
     if os.getenv('ENV') == 'prod':
         images = app.config['S3_LOCATION'] + owner_ad.photo
-    if os.getenv('ENV') == 'dev':
-        return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
+
+    return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
                  "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images}
 
 
