@@ -2,7 +2,7 @@ from flask import Blueprint,request
 from s3config import s3
 from advertisement.models import db, Category, Advertisement, AdImage, AdPlan
 from user.api import check_email,check_phone
-from user.models import User
+from user.models import User, UserProfile
 from user.api import get_jwt_identity,jwt_required
 from geoalchemy2 import WKTElement
 import os
@@ -633,15 +633,19 @@ def details_of_ad(ad_id):
     ads= Advertisement.query.filter_by(id=ad_id).first()
     ad_images=AdImage.query.filter_by(ad_id=ad_id).all()
     image_list=[]
+    owner_ad=UserProfile.query.filter_by(user_id=ads.user_id).first()
     for ad_image in ad_images:
         if os.getenv('ENV')=='dev':
-            image={"image": os.getenv('HOME_ROUTE')+ad_image.file ,"display_order": ad_image.display_order}
+            image_list.append(os.getenv('HOME_ROUTE')+ad_image.file)
         if os.getenv('ENV') == 'prod':
-            image = {"image": app.config['S3_LOCATION'] + ad_image.file, "display_order": ad_image.display_order}
-        image_list.append(image)
-
-    return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
-                 "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at}
+            image_list.append(app.config['S3_LOCATION'] + ad_image.file)
+    if os.getenv('ENV') == 'dev':
+        images = os.getenv('HOME_ROUTE') + owner_ad.photo
+    if os.getenv('ENV') == 'prod':
+        images = app.config['S3_LOCATION'] + owner_ad.photo
+    if os.getenv('ENV') == 'dev':
+        return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
+                 "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images}
 
 
 
