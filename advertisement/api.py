@@ -450,7 +450,7 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
     adv=Advertisement.query.filter_by(is_featured=True).all()
     for ads in adv:
         plan=AdPlan.query.filter_by(id=ads.advertising_plan_id).first()
-        if datetime.utcnow()-ads.created_at>timedelta(days=plan.days):
+        if datetime.now()-ads.created_at>timedelta(days=plan.days):
             ads.is_featured=False
             db.session.add(ads)
             db.session.commit()
@@ -644,7 +644,6 @@ def details_of_ad(ad_id):
         images = os.getenv('HOME_ROUTE') + owner_ad.photo
     if os.getenv('ENV') == 'prod':
         images = app.config['S3_LOCATION'] + owner_ad.photo
-
     return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
                  "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images}
 
