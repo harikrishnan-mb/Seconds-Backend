@@ -10,12 +10,15 @@ import bcrypt
 import redis
 from s3config import s3
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
 from bcrypt import checkpw
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt
 from flask_jwt_extended import JWTManager
+load_dotenv
 user = Blueprint('user', __name__)
 app = get_app()
 jwt = JWTManager(app)
+
 
 @user.route('/signup', methods=['POST'])
 def signup():
@@ -237,14 +240,14 @@ def update_profile():
     if not address:
         return {'data': {'error': 'provide address'}}
     if not photo:
-        photo_url=UserProfile.query.filter_by(user_id=user_id).first().photo
+        photo_url='static/profile/profile.jpg'
     if photo and not allowed_profile_image_file(photo.filename):
         return {'data': {'error': 'image should be in png, jpg or jpeg format'}}
     if photo and allowed_profile_image_file(photo.filename):
         filename = str(user_id)+secure_filename(photo.filename)
-        if os.getenv('ENV')=='dev':
+        if os.getenv('ENV')=="DEVELOPMENT":
             photo.save(os.path.join(app.config['UPLOADED_PROFILE_DEST'], filename))
-        else:
+        if os.getenv('ENV')=="PRODUCTION":
             s3.upload_fileobj(
                 photo,
                 app.config['S3_BUCKET'],
@@ -278,9 +281,9 @@ def view_profile():
     return displaying_user_profile(user_id)
 def displaying_user_profile(user_id):
     user_profile=UserProfile.query.filter_by(user_id=user_id).first()
-    if os.getenv('ENV')=='prod':
+    if os.getenv('ENV')=='PRODUCTION':
         return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
-    if os.getenv('ENV') == 'dev':
+    if os.getenv('ENV') == 'DEVELOPMENT':
         return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
 
 

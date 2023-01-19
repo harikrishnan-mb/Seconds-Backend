@@ -267,7 +267,7 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
-        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8' in response.data)
+        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 6' in response.data)
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')

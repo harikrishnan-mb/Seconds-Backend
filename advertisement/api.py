@@ -248,6 +248,8 @@ def create_ad():
         return {"data": {"error": "provide category id as integer"}},400
     if checking_category_id_exist(category_id) is None:
         return {"data": {"error": "category id not found"}}, 400
+    if not images:
+        return {"data":{"error": ErrorCodes.image_field_is_required.value['msg'], 'error_id': ErrorCodes.image_field_is_required.value['code']}}, 400
     for image in images:
         if not image:
             return {"data": {"error": "provide image"}}, 400
@@ -321,8 +323,6 @@ def create_ad():
     return saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo)
 
 def saving_created_ad(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, geo):
-    if not images:
-        return {"data":{"error": ErrorCodes.image_field_is_required.value['msg'], 'error_id': ErrorCodes.image_field_is_required.value['code']}}, 400
     with Session(engine) as session:
         session.begin()
         try:
@@ -345,9 +345,9 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
                 else:
                     cover_image = False
                 filename = ad_1.advertising_id+secure_filename(image.filename)
-                if os.getenv('ENV')=='dev':
+                if os.getenv('ENV')=='DEVELOPMENT':
                     image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
-                if os.getenv('ENV')=='prod':
+                if os.getenv('ENV')=='PRODUCTION':
                     s3.upload_fileobj(
                         image,
                         app.config['S3_BUCKET'],
@@ -457,9 +457,9 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
     advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).paginate(page=page,per_page=12,error_out=False)
     for advertisement in advertisements:
         ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
-        if os.getenv('ENV')=='dev':
+        if os.getenv('ENV')=='DEVELOPMENT':
             images=os.getenv('HOME_ROUTE') + ad_images.file
-        if os.getenv('ENV')=='prod':
+        if os.getenv('ENV')=='PRODUCTION':
             images=app.config['S3_LOCATION'] + ad_images.file
         ad_filter = {"id": advertisement.id, "title": advertisement.title,
                      "cover_image": images, "featured": advertisement.is_featured,
@@ -472,7 +472,7 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
 @jwt_required()
 def update_ad(ads_id):
     person = get_jwt_identity()
-    if checking_person_posted_ad(ads_id,person):
+    if checking_user_posted_ad(ads_id,person):
         category_id = request.form.get("category_id")
         status = request.form.get("status")
         images = request.files.getlist('images')
@@ -491,6 +491,8 @@ def update_ad(ads_id):
         email_id = request.form.get("email_id")
         if not category_id:
             return {"data":{"error": "provide category id"}}
+        if not images:
+            return {"data": {"error": "image field is required"}}, 400
         for image in images:
             if image.filename == '':
                 return {"data":{"error": "provide image"}}
@@ -572,13 +574,8 @@ def update_ad(ads_id):
     else:
         return{"data": {"error": "only owner can edit ad"}}
 
-def checking_person_posted_ad(ads_id,person):
-    adv = Advertisement.query.filter_by(id=ads_id).first()
-    return adv.user_id==person
 
 def updating_ad_details(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo):
-    if not images:
-        return {"data":{"error": "image field is required"}}, 400
     try:
         adv = Advertisement.query.filter_by(id=ads_id).first()
         adv.title = title
@@ -609,9 +606,9 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
                 cover_image = False
 
             filename = adv.advertising_id + secure_filename(image.filename)
-            if os.getenv('ENV') == 'dev':
+            if os.getenv('ENV') == 'DEVELOPMENT':
                 image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
-            if os.getenv('ENV') == 'prod':
+            if os.getenv('ENV') == 'PRODUCTION':
                 s3.upload_fileobj(
                     image,
                     app.config['S3_BUCKET'],
@@ -636,16 +633,16 @@ def details_of_ad(ad_id):
     image_list=[]
     owner_ad=UserProfile.query.filter_by(user_id=ads.user_id).first()
     for ad_image in ad_images:
-        if os.getenv('ENV')=='dev':
+        if os.getenv('ENV')=='DEVELOPMENT':
             image_list.append(os.getenv('HOME_ROUTE')+ad_image.file)
-        if os.getenv('ENV') == 'prod':
+        if os.getenv('ENV') == 'PRODUCTION':
             image_list.append(app.config['S3_LOCATION'] + ad_image.file)
-    if os.getenv('ENV') == 'dev':
+    if os.getenv('ENV') == 'DEVELOPMENT':
         images = os.getenv('HOME_ROUTE') + owner_ad.photo
-    if os.getenv('ENV') == 'prod':
+    if os.getenv('ENV') == 'PRODUCTION':
         images = app.config['S3_LOCATION'] + owner_ad.photo
     return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
-                 "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images}
+            "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images}
 
 
 
