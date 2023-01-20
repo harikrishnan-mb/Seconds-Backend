@@ -8,6 +8,7 @@ from geoalchemy2 import WKTElement
 from messages import ErrorCodes
 import os
 from datetime import datetime, timedelta
+import mimetypes
 import secrets
 import string
 from sqlalchemy.orm import Session

@@ -291,10 +291,11 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_new_and_old_mail_not_same')
     def test_update_profile1(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,mock_saving_updated_profile):
         update_profile_obj = {
-            "name": "Test Person",
+            "name": "Demo",
             "email_id": "test@gmail.com",
-            "phone": "6887779999",
-            "address": "address"}
+            "phone": "8989889989",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value=True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
@@ -312,10 +313,11 @@ class ApiTest1(unittest.TestCase):
     def test_update_profile2(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                             mock_saving_updated_profile):
         update_profile_obj = {
-            "name": "Test Person",
-            "email_id": "test",
-            "phone": "6887779999",
-            "address": "address"}
+            "name": "Demo",
+            "email_id": "tesgmail.com",
+            "phone": "8989889989",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value = True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
@@ -333,10 +335,11 @@ class ApiTest1(unittest.TestCase):
     def test_update_profile3(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                             mock_saving_updated_profile):
         update_profile_obj = {
-            "name": "Test Person",
+            "name": "Demo",
             "email_id": "test@gmail.com",
-            "phone": "6787813999",
-            "address": ""}
+            "phone": "8989889989",
+            "address": "",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value = True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
@@ -354,10 +357,11 @@ class ApiTest1(unittest.TestCase):
     def test_update_profile4(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                             mock_saving_updated_profile):
         update_profile_obj = {
-            "name": "Test Person",
+            "name": "Demo",
             "email_id": "",
-            "phone": "6787813999",
-            "address": "address"}
+            "phone": "8989889989",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value = True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
@@ -377,8 +381,9 @@ class ApiTest1(unittest.TestCase):
         update_profile_obj = {
             "name": "",
             "email_id": "test@gmail.com",
-            "phone": "9876567898",
-            "address": "address"}
+            "phone": "8989889989",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value = True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
@@ -398,8 +403,9 @@ class ApiTest1(unittest.TestCase):
         update_profile_obj = {
             "name": "Demo",
             "email_id": "test@gmail.com",
-            "phone": "9",
-            "address": "address"}
+            "phone": "8989889",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value = True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200

@@ -240,7 +240,7 @@ def update_profile():
     if not address:
         return {'data': {'error': 'provide address'}}
     if not photo:
-        photo_url='static/profile/profile.jpg'
+        photo_url=UserProfile.query.filter_by(user_id=user_id).first().photo
     if photo and not allowed_profile_image_file(photo.filename):
         return {'data': {'error': 'image should be in png, jpg or jpeg format'}}
     if photo and allowed_profile_image_file(photo.filename):
