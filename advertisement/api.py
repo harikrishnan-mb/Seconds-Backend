@@ -239,7 +239,6 @@ def create_ad():
     seller_name = request.form.get("seller_name")
     phone = request.form.get("phone")
     email_id = request.form.get("email_id")
-    print(images)
     if not category_id:
         return {"data":{"error": "provide category id"}}, 400
     try:

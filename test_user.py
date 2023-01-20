@@ -1,6 +1,7 @@
 try:
     import unittest
     from app import app
+    import io
     from unittest.mock import Mock, patch
     from flask_jwt_extended import create_access_token, create_refresh_token
     import json
@@ -410,16 +411,18 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'phone number not valid' in response.data)
 
+
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile_1(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
-                             mock_saving_updated_profile):
+    def test_update_profile_7(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                              mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
             "email_id": "test@gmail.com",
-            "phone": "",
-            "address": "address"}
+            "phone": "8989889989",
+            "address": "address",
+        "photo": (io.BytesIO(b'static/iphone13pro.jpg'),'profile.html')}
         mock_checking_new_and_old_mail_not_same.return_value = False
         mock_checking_mail_exist.return_value = True
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
@@ -429,7 +432,7 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
-        self.assertTrue(b'provide phone' in response.data)
+        self.assertTrue(b'image should be in png, jpg or jpeg format' in response.data)
 
     @patch('user.api.displaying_user_profile')
     def test_get_profile(self, mock_displaying_user_profile):
