@@ -282,7 +282,7 @@ def view_profile():
 def displaying_user_profile(user_id):
     user_profile=UserProfile.query.filter_by(user_id=user_id).first()
     if os.getenv('ENV')=='PRODUCTION':
-        return {"data":{"message": {"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}}}
+        return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
     if os.getenv('ENV') == 'DEVELOPMENT':
         return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
 

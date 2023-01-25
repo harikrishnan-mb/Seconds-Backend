@@ -165,16 +165,18 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'error' in response.data)
 
+    @patch('advertisement.api.checking_new_and_old_category_name_not_same')
     @patch('advertisement.api.updating_category_in_db')
     @patch('advertisement.api.checking_parent_id_exist')
     @patch('advertisement.api.filtering_category')
     @patch('advertisement.api.checking_category_name_already_exist')
     @patch('advertisement.api.admin_is_true')
-    def test_change_category(self, mock_admin_is_true, mock_checking_category_name_already_exist,mock_filtering_category,mock_checking_parent_id_exist,mock_updating_category_in_db):
+    def test_change_category(self, mock_admin_is_true, mock_checking_category_name_already_exist,mock_filtering_category,mock_checking_parent_id_exist,mock_updating_category_in_db,mock_checking_new_and_old_category_name_not_same):
         category_add = {"category": "Demo", "file": '', "parent_id": "24"}
         mock_admin_is_true.return_value = True
         mock_checking_category_name_already_exist.return_value = False
         mock_checking_parent_id_exist.return_value = True
+        mock_checking_new_and_old_category_name_not_same.return_value=True
         mock_filtering_category.return_value=Category
         mock_updating_category_in_db.return_value = {"data": {"message": "Category updated"}}, 200
         response = self.client.put("/ad/update_category/1", headers=self.access_token, data=category_add)
@@ -192,17 +194,19 @@ class ApiTest2(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'only admin can update category' in response.data)
 
+    @patch('advertisement.api.checking_new_and_old_category_name_not_same')
     @patch('advertisement.api.updating_category_in_db')
     @patch('advertisement.api.checking_parent_id_exist')
     @patch('advertisement.api.filtering_category')
     @patch('advertisement.api.checking_category_name_already_exist')
     @patch('advertisement.api.admin_is_true')
-    def test_change_category3(self, mock_admin_is_true, mock_checking_category_name_already_exist,mock_filtering_category,mock_checking_parent_id_exist,mock_updating_category_in_db):
+    def test_change_category3(self, mock_admin_is_true, mock_checking_category_name_already_exist,mock_filtering_category,mock_checking_parent_id_exist,mock_updating_category_in_db, mock_checking_new_and_old_category_name_not_same):
         category_add = {"category": "Demo", "file": '', "parent_id": "24"}
         mock_admin_is_true.return_value = True
         mock_checking_category_name_already_exist.return_value = False
         mock_checking_parent_id_exist.return_value = True
         mock_filtering_category.return_value = False
+        mock_checking_new_and_old_category_name_not_same=True
         mock_updating_category_in_db.return_value = {"data": {"message": "Category updated"}}, 200
         response = self.client.put("/ad/update_category/1", headers=self.access_token, data=category_add)
         self.assertEqual(response.status_code, 200)
@@ -1277,6 +1281,45 @@ class ApiTest2(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'message' in response.data)
         self.assertTrue(b'data' in response.data)
+
+    @patch('advertisement.api.checking_user_posted_ad')
+    @patch('advertisement.api.filtering_ad_by_id')
+    @patch('advertisement.api.saving_ad_as_inactive')
+    def test_remove_ad1(self,mock_saving_ad_as_inactive,mock_filtering_ad_by_id_adv,mock_checking_user_posted_ad):
+        mock_saving_ad_as_inactive.return_value = {"data": {"message": "ad inactivated"}}
+        mock_filtering_ad_by_id_adv.return_value = "ad"
+        mock_checking_user_posted_ad.return_value = True
+        response = self.client.put("/ad/remove_ad/1", headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'ad inactivated' in response.data)
+
+    @patch('advertisement.api.checking_user_posted_ad')
+    @patch('advertisement.api.filtering_ad_by_id')
+    @patch('advertisement.api.saving_ad_as_inactive')
+    def test_remove_ad2(self, mock_saving_ad_as_inactive, mock_filtering_ad_by_id_adv,mock_checking_user_posted_ad):
+        mock_saving_ad_as_inactive.return_value = {"data": {"message": "ad deleted"}}
+        mock_filtering_ad_by_id_adv.return_value = "ad"
+        mock_checking_user_posted_ad.return_value = False
+        response = self.client.put("/ad/remove_ad/1", headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'only owner can edit ad' in response.data)
+
+    @patch('advertisement.api.checking_user_posted_ad')
+    @patch('advertisement.api.filtering_ad_by_id')
+    @patch('advertisement.api.saving_ad_as_inactive')
+    def test_remove_ad3(self, mock_saving_ad_as_inactive, mock_filtering_ad_by_id_adv, mock_checking_user_posted_ad):
+        mock_saving_ad_as_inactive.return_value = {"data": {"message": "ad deleted"}}
+        mock_filtering_ad_by_id_adv.return_value = None
+        mock_checking_user_posted_ad.return_value = True
+        response = self.client.put("/ad/remove_ad/1", headers=self.access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'ad not found' in response.data)
 
 
 if __name__=="__main__":

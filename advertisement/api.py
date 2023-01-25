@@ -8,11 +8,10 @@ from geoalchemy2 import WKTElement
 from messages import ErrorCodes
 import os
 from datetime import datetime, timedelta
-import mimetypes
 import secrets
 import string
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, or_, and_
 from werkzeug.utils import secure_filename
 from createapp import get_app
 from dotenv import load_dotenv
@@ -33,7 +32,10 @@ def get_every_categories():
         for sub_category in sub_categories:
             sub_category_name = {"id": sub_category.id, "name": sub_category.name}
             sub_categories_list.append(sub_category_name)
-        category_name = {"id": category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image, "sub_category": sub_categories_list}
+        if os.getenv('ENV') == 'DEVELOPMENT':
+            category_name = {"id": category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image, "sub_category": sub_categories_list}
+        if os.getenv('ENV')=='PRODUCTION':
+            category_name = {"id": category.id, "name": category.name,"images": app.config['S3_LOCATION'] + category.image, "sub_category": sub_categories_list}
         categories_list.append(category_name)
     return {"data": {"message": categories_list}}, 200
 
@@ -44,7 +46,10 @@ def get_only_categories():
     categories=Category.query.filter_by(parent_id=None).order_by(Category.id).all()
     categories_list=[]
     for category in categories:
-        category_name={"id":category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image}
+        if os.getenv('ENV') == 'DEVELOPMENT':
+            category_name = {"id":category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image}
+        if os.getenv('ENV') == 'PRODUCTION':
+            category_name = {"id": category.id, "name": category.name, "images": app.config['S3_LOCATION'] + category.image}
         categories_list.append(category_name)
     return{"data": {"message": categories_list}}, 200
 
@@ -108,7 +113,11 @@ def add_category():
                 return {"data": {"error": "image should be svg"}}
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                if os.getenv('ENV') == "DEVELOPMENT":
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                if os.getenv('ENV') == "PRODUCTION":
+                    s3.upload_fileobj(file, app.config['S3_BUCKET'], 'static/catagory/' + filename,
+                        ExtraArgs={"ACL": "public-read","ContentType": file.content_type})
                 category_add = Category(name=category, image='static/catagory/' + filename, parent_id=None)
         return adding_category_to_db(category_add)
     else:
@@ -136,8 +145,11 @@ def change_category(category_id):
             parent_id = request.form["parent_id"]
             if not category:
                 return {"data": {"error": "provide category name"}}
-            if checking_category_name_already_exist(category):
-                return {"data": {"error": "category already exist"}}
+            if checking_new_and_old_category_name_not_same(category_id, category):
+                if checking_category_name_already_exist(category):
+                    return {"data": {"error": "category already exist"}}
+                else:
+                    filtering_category(category_id).name = category
             if not file and not parent_id:
                 return {"data": {"error": "provide parent_id or file"}}
             if parent_id and file:
@@ -152,7 +164,6 @@ def change_category(category_id):
                 if not checking_parent_id_exist(parent_id):
                     return {"data": {"error": "parent_id should be id of any category"}}
 
-                filtering_category(category_id).name = category
                 filtering_category(category_id).image = ''
                 filtering_category(category_id).parent_id = parent_id
             if not parent_id or parent_id == '':
@@ -160,8 +171,12 @@ def change_category(category_id):
                     return {"data": {"error": "image should be svg"}}
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    filtering_category(category_id).name = category
+                    if os.getenv("ENV")=="DEVELOPMENT":
+                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    if os.getenv("ENV") == "PRODUCTION":
+                        s3.upload_fileobj(file, app.config['S3_BUCKET'], 'static/catagory/' + filename,
+                                          ExtraArgs={"ACL": "public-read", "ContentType": file.content_type})
+
                     filtering_category(category_id).image = 'static/catagory/' + filename
                     filtering_category(category_id).parent_id = None
             return updating_category_in_db(category_id)
@@ -170,7 +185,8 @@ def change_category(category_id):
     else:
         return {"data": {"error": "only admin can update category"}}, 400
 
-
+def checking_new_and_old_category_name_not_same(category_id, category):
+    return filtering_category(category_id).name!=category
 def filtering_category(category_id):
      return Category.query.filter_by(id=category_id).first()
 def updating_category_in_db(category_id):
@@ -400,6 +416,18 @@ def view_ad(page):
         category_id_list=list(category_map)
         cat_id=Advertisement.category_id.in_(category_id_list)
         filter_list.append(cat_id)
+    if "main_category_id" in request.args:
+        main_category_id = request.args["main_category_id"]
+        main_category_id=main_category_id.split(',')
+        main_category_map=map(int,main_category_id)
+        categories_list=list(main_category_map)
+        sub_category_list=[]
+        for category_id in categories_list:
+            sub_categories=Category.query.filter_by(parent_id=category_id).all()
+            for sub_category in sub_categories:
+                sub_category_list.append(sub_category.id)
+        category_ids=Advertisement.category_id.in_(sub_category_list)
+        filter_list.append(category_ids)
 
     # sorting based on time, price: high to low and price: low to high
     if "sort" in request.args:
@@ -455,6 +483,7 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             db.session.add(ads)
             db.session.commit()
     advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).paginate(page=page,per_page=12,error_out=False)
+    number_of_ads=Advertisement.query.filter(*filter_list).order_by(*sorts).count()
     for advertisement in advertisements:
         ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
         if os.getenv('ENV')=='DEVELOPMENT':
@@ -463,9 +492,9 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             images=app.config['S3_LOCATION'] + ad_images.file
         ad_filter = {"id": advertisement.id, "title": advertisement.title,
                      "cover_image": images, "featured": advertisement.is_featured,
-                     "location": advertisement.location, "price": advertisement.price}
+                     "location": advertisement.location, "price": advertisement.price, "status":advertisement.status}
         list_ad.append(ad_filter)
-    return {"data": {"message": list_ad}}
+    return {"data": {"message": list_ad, "count": number_of_ads }}
 
 
 @ad.route("/update_ad/<int:ads_id>", methods=["PUT"])
@@ -642,7 +671,78 @@ def details_of_ad(ad_id):
     if os.getenv('ENV') == 'PRODUCTION':
         images = app.config['S3_LOCATION'] + owner_ad.photo
     return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
-            "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images}
+            "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images, "status":ads.status}
+
+@ad.route("/similar_ads/<int:ad_id>", methods=["GET"],defaults={"page": 1})
+@ad.route("/similar_ads/<int:ad_id>/<int:page>", methods=["GET"])
+def recommended_ad(ad_id,page):
+    ads = Advertisement.query.filter_by(id=ad_id).first()
+    if ads is None:
+        return {"data": {"error": "provide valid advertisement id"}}, 200
+    sorts = [Advertisement.is_featured.desc()]
+    filter_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.id!=ad_id]
+    lat=ads.latitude
+    long=ads.longitude
+    loc_point = WKTElement('POINT({} {})'.format(str(long), str(lat)))
+    sorts_query = func.ST_Distance(Advertisement.geo, loc_point).asc()
+    sorts.append(sorts_query)
+    ad_title = ads.title
+    titles_list=ad_title.split(' ')
+    search_list=[]
+    for title in titles_list:
+        if Advertisement.query.filter(func.lower(Advertisement.title).contains(func.lower(title))).first():
+            filters=func.lower(Advertisement.title).contains(func.lower(title))
+            search_list.append(filters)
+        elif Category.query.filter(func.lower(Category.name).contains(func.lower(title))).first():
+                category=Category.query.filter(func.lower(Category.name).contains(func.lower(title))).first()
+                filters=Advertisement.category_id==category.id
+                search_list.append(filters)
+        else:
+            search_list=search_list
+    category_ids = Advertisement.category_id==ads.category_id
+    search_list.append(category_ids)
+    filter_list.append(or_(*search_list))
+    advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).paginate(page=page,per_page=10,error_out=False)
+    list_recommended_ad=[]
+    for advertisement in advertisements:
+        ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
+        if os.getenv('ENV')=='DEVELOPMENT':
+            images=os.getenv('HOME_ROUTE') + ad_images.file
+        if os.getenv('ENV')=='PRODUCTION':
+            images=app.config['S3_LOCATION'] + ad_images.file
+        ad_filter = {"id": advertisement.id, "title": advertisement.title,
+                     "cover_image": images, "featured": advertisement.is_featured,
+                     "location": advertisement.location, "price": advertisement.price,"status":advertisement.status}
+        list_recommended_ad.append(ad_filter)
+    return {"data": {"message": list_recommended_ad }}
+
+@ad.route("/remove_ad/<int:ad_id>", methods=["PUT"])
+@jwt_required()
+def making_ad_inactive(ad_id):
+    person = get_jwt_identity()
+    if filtering_ad_by_id(ad_id) is None:
+        return {"data": {"error": "ad not found"}},200
+    if checking_user_posted_ad(ad_id, person):
+        return saving_ad_as_inactive(ad_id)
+    return {"data": {"error": "only owner can edit ad"}},200
+def saving_ad_as_inactive(ad_id):
+    filtering_ad_by_id(ad_id).status = "inactive"
+    db.session.add(filtering_ad_by_id(ad_id))
+    db.session.commit()
+    return {"data": {"message": "ad inactivated"}}, 200
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
