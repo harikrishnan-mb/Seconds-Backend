@@ -12,7 +12,7 @@ from s3config import s3
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from bcrypt import checkpw
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt,verify_jwt_in_request
 from flask_jwt_extended import JWTManager
 load_dotenv
 user = Blueprint('user', __name__)
