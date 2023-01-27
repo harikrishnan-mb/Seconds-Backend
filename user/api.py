@@ -12,7 +12,7 @@ from s3config import s3
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from bcrypt import checkpw
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt,verify_jwt_in_request
 from flask_jwt_extended import JWTManager
 load_dotenv
 user = Blueprint('user', __name__)
@@ -205,7 +205,7 @@ def check_if_token_is_revoked(jwt_header, jwt_payload: dict):
 @jwt_required()
 def logout():
     jti = get_jwt()["jti"]
-    jwt_redis_blocklist.set(jti, "", ex=timedelta(minutes=30))
+    jwt_redis_blocklist.set(jti, "", ex=app.config["JWT_ACCESS_TOKEN_EXPIRES"])
     return {"data":{"message":"Access token revoked"}}
 
 def allowed_profile_image_file(filename):
