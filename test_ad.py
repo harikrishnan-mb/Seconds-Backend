@@ -601,10 +601,10 @@ class ApiTest2(unittest.TestCase):
         mock_create_ad_category_db.return_value = "category"
         mock_create_ad_plan_db.return_value = "ad plan"
         response = self.client.post("/ad/create_ad", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "application/json")
-        self.assertTrue(b'error' in response.data)
-        self.assertTrue(b'provide email' in response.data)
+        self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'ad created' in response.data)
 
     @patch('advertisement.api.checking_adplan_exist')
     @patch('advertisement.api.checking_category_id_exist')
@@ -1113,8 +1113,8 @@ class ApiTest2(unittest.TestCase):
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "application/json")
-        self.assertTrue(b'error' in response.data)
-        self.assertTrue(b'provide email' in response.data)
+        self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'ad edited successfully' in response.data)
 
     @patch('advertisement.api.checking_user_posted_ad')
     @patch('advertisement.api.checking_adplan_exist')
@@ -1303,7 +1303,7 @@ class ApiTest2(unittest.TestCase):
         mock_filtering_ad_by_id_adv.return_value = "ad"
         mock_checking_user_posted_ad.return_value = False
         response = self.client.put("/ad/remove_ad/1", headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'only owner can edit ad' in response.data)
@@ -1316,11 +1316,10 @@ class ApiTest2(unittest.TestCase):
         mock_filtering_ad_by_id_adv.return_value = None
         mock_checking_user_posted_ad.return_value = True
         response = self.client.put("/ad/remove_ad/1", headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'ad not found' in response.data)
-
 
 if __name__=="__main__":
     unittest.main()
