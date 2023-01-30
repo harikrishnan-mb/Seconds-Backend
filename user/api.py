@@ -221,28 +221,28 @@ def update_profile():
     phone = request.form.get('phone')
     address = request.form.get('address')
     if not name:
-        return {'data': {'error': 'provide name'}}
+        return {'data': {'error': 'provide name'}}, 400
     if not email_id:
-        return {'data': {'error': 'provide email_id'}}
+        return {'data': {'error': 'provide email_id'}}, 400
     if not email_id:
-        return {'data': {'error': 'provide email_id'}}
+        return {'data': {'error': 'provide email_id'}}, 400
     if not check_email(email_id):
-        return {'data': {'error': 'provide valid email_id'}}
+        return {'data': {'error': 'provide valid email_id'}}, 400
     if checking_new_and_old_mail_not_same(user_id,email_id):
         if checking_mail_exist(email_id):
-            return {"data": {"message":"email id already exist"}}
+            return {"data": {"error": ErrorCodes.email_already_exists.value["msg"], "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
         else:
             filter_user(user_id).email = email_id
     if not phone:
-        return {'data': {'error': 'provide phone number'}}
+        return {'data': {'error': 'provide phone number'}}, 400
     if not check_phone(phone):
-        return {'data': {'error': 'phone number not valid'}}
+        return {'data': {'error': 'phone number not valid'}}, 400
     if not address:
-        return {'data': {'error': 'provide address'}}
+        return {'data': {'error': 'provide address'}}, 400
     if not photo:
         photo_url=UserProfile.query.filter_by(user_id=user_id).first().photo
     if photo and not allowed_profile_image_file(photo.filename):
-        return {'data': {'error': 'image should be in png, jpg or jpeg format'}}
+        return {'data': {'error': 'image should be in png, jpg or jpeg format'}}, 400
     if photo and allowed_profile_image_file(photo.filename):
         filename = str(user_id)+secure_filename(photo.filename)
         if os.getenv('ENV')=="DEVELOPMENT":
@@ -272,7 +272,7 @@ def saving_updated_profile(user_id, photo_url, name, phone, address):
     db.session.add(user_profile)
     db.session.add(filter_user(user_id))
     db.session.commit()
-    return {'data': {'message': 'profile updated successfully'}}
+    return {'data': {'message': 'profile updated successfully'}}, 200
 
 @user.route('/profile', methods=['GET'])
 @jwt_required()
@@ -282,9 +282,9 @@ def view_profile():
 def displaying_user_profile(user_id):
     user_profile=UserProfile.query.filter_by(user_id=user_id).first()
     if os.getenv('ENV')=='PRODUCTION':
-        return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
+        return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}, 200
     if os.getenv('ENV') == 'DEVELOPMENT':
-        return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}
+        return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}, 200
 
 
 
