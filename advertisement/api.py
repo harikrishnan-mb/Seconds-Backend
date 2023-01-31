@@ -486,11 +486,11 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
     try:
         lower_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.asc()).first().price
     except AttributeError:
-        lower_price = "no_items_to_load"
+        lower_price = None
     try:
         upper_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.desc()).first().price
     except AttributeError:
-        upper_price = "no_items_to_load"
+        upper_price = None
     count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
     count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 100000,Advertisement.price < 300000)).count()
     count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()
