@@ -270,7 +270,7 @@ def create_ad():
         if not image:
             return {"data": {"error": "provide image"}}, 400
         if image and not allowed_img_file(image.filename):
-            return {"data":{"error": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['msg'],"error_id": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['code']}}, 400
+            return {"data":{"error": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['msg'], "error_id": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['code']}}, 400
     if not title:
         return {"data": {"error": "provide title"}}, 400
     if not status:
@@ -483,7 +483,15 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             ads.is_featured=False
             db.session.add(ads)
             db.session.commit()
-    count_of_price_range_0_to_1_lakh= Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
+    try:
+        lower_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.asc()).first().price
+    except AttributeError:
+        lower_price = "no_items_to_load"
+    try:
+        upper_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.desc()).first().price
+    except AttributeError:
+        upper_price = "no_items_to_load"
+    count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
     count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 100000,Advertisement.price < 300000)).count()
     count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()
     count_of_price_range_greater_than_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 600000)).count()
@@ -507,7 +515,8 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad, "count": number_of_ads,
                      "below_one_lakh": count_of_price_range_0_to_1_lakh, "one_to_three_lakh": count_of_price_range_1_to_3_lakh,
-                     "three_to_six_lakh": count_of_price_range_3_to_6_lakh,"above_six_lakh": count_of_price_range_greater_than_6_lakh}}, 200
+                     "three_to_six_lakh": count_of_price_range_3_to_6_lakh,"above_six_lakh": count_of_price_range_greater_than_6_lakh,
+                     "lower_price": lower_price, "upper_price": upper_price}}, 200
 
 
 @ad.route("/update_ad/<int:ads_id>", methods=["PUT"])
