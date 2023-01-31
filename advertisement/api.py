@@ -207,7 +207,7 @@ def ads_plan():
     return {"data": {"message": ad_plan_list}}, 200
 
 def allowed_img_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg','webp'}
 
 def generate_random_text():
     return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for i in range(14))
@@ -270,7 +270,7 @@ def create_ad():
         if not image:
             return {"data": {"error": "provide image"}}, 400
         if image and not allowed_img_file(image.filename):
-            return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
+            return {"data":{"error": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['msg'],"error_id": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['code']}}, 400
     if not title:
         return {"data": {"error": "provide title"}}, 400
     if not status:
@@ -534,12 +534,12 @@ def update_ad(ads_id):
         if not category_id:
             return {"data":{"error": "provide category id"}}, 400
         if not images:
-            return {"data": {"error": "image field is required"}}, 400
+            return {"data": {"error": ErrorCodes.image_field_is_required.value['msg'], 'error_id': ErrorCodes.image_field_is_required.value['code']}}, 400
         for image in images:
             if image.filename == '':
                 return {"data":{"error": "provide image"}}, 400
             if image and not allowed_img_file(image.filename):
-                return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
+                return {"data":{"error": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['msg'],"error_id": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['code']}}, 400
         try:
             category_id=int(category_id)
         except ValueError:
