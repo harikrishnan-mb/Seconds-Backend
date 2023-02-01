@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from database import get_db
 from geoalchemy2 import Geography
@@ -60,7 +59,7 @@ class Advertisement(db.Model):
     email = db.Column(db.String(120), nullable=False)
     advertising_id = db.Column(db.String(100), unique=True)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
-    # is_disabled = db.Column(db.Boolean, default=False, nullable=False)
+    is_disabled = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now())
 

@@ -398,7 +398,7 @@ def checking_adplan_exist(ad_plan_id):
 @ad.route("/view_ad/<int:page>", methods=["GET"])
 def view_ad(page):
     sorts=[Advertisement.is_featured.desc() ]
-    filter_list= [Advertisement.status=="active", Advertisement.is_deleted==False]
+    filter_list= [Advertisement.status=="active", Advertisement.is_deleted==False, Advertisement.is_disabled==False]
 
     #filtering based on min_price, max_price, main_category_id and subcategory_id
     if "max_price" in request.args:
@@ -483,14 +483,6 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             ads.is_featured=False
             db.session.add(ads)
             db.session.commit()
-    try:
-        lower_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.asc()).first().price
-    except AttributeError:
-        lower_price = None
-    try:
-        upper_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.desc()).first().price
-    except AttributeError:
-        upper_price = None
     count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
     count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 100000,Advertisement.price < 300000)).count()
     count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()
@@ -515,9 +507,7 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad, "count": number_of_ads,
                      "below_one_lakh": count_of_price_range_0_to_1_lakh, "one_to_three_lakh": count_of_price_range_1_to_3_lakh,
-                     "three_to_six_lakh": count_of_price_range_3_to_6_lakh,"above_six_lakh": count_of_price_range_greater_than_6_lakh,
-                     "lower_price": lower_price, "upper_price": upper_price}}, 200
-
+                     "three_to_six_lakh": count_of_price_range_3_to_6_lakh,"above_six_lakh": count_of_price_range_greater_than_6_lakh}}, 200
 
 @ad.route("/update_ad/<int:ads_id>", methods=["PUT"])
 @jwt_required()
@@ -681,6 +671,7 @@ def details_of_ad(ad_id):
     ads= Advertisement.query.filter_by(id=ad_id).first()
     ad_images=AdImage.query.filter_by(ad_id=ad_id).all()
     owner_ad = UserProfile.query.filter_by(user_id=ads.user_id).first()
+    sub_category_name=Category.query.filter_by(id=ads.category_id).first().name
     image_list=[]
     is_liked = False
     if "Authorization" in request.headers:
@@ -698,7 +689,8 @@ def details_of_ad(ad_id):
     if os.getenv('ENV') == 'PRODUCTION':
         images = app.config['S3_LOCATION'] + owner_ad.photo
     return {"id": ads.id, "title": ads.title, "description":ads.description, "advertising_id":ads.advertising_id, "images": image_list, "seller_name":ads.seller_name, "featured": ads.is_featured,
-            "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images, "status":ads.status, "favourite": is_liked}
+            "latitude":ads.latitude,"longitude":ads.longitude, "location": ads.location, "price": ads.price, "posted_at": ads.created_at, "photo": images, "status":ads.status, "favourite": is_liked,
+            "sub_category_name": sub_category_name}
 
 @ad.route("/similar_ads/<int:ad_id>", methods=["GET"],defaults={"page": 1})
 @ad.route("/similar_ads/<int:ad_id>/<int:page>", methods=["GET"])
@@ -707,7 +699,7 @@ def recommended_ad(ad_id,page):
     if ads is None:
         return {"data": {"error": "provide valid advertisement id"}}, 200
     sorts = [Advertisement.is_featured.desc()]
-    filter_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.id!=ad_id]
+    filter_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.is_disabled == False, Advertisement.id!=ad_id]
     sorts_query = func.ST_Distance(Advertisement.geo, ads.geo).asc()
     sorts.append(sorts_query)
     ad_title = ads.title
@@ -794,7 +786,7 @@ def getting_my_ads():
             ad_filter = {"id": advertisement.id, "title": advertisement.title,
                          "cover_image": images, "featured": advertisement.is_featured,
                          "location": advertisement.location, "price": advertisement.price,
-                         "status": advertisement.status, "favourite": is_liked}
+                         "status": advertisement.status, "favourite": is_liked, "disabled": advertisement.is_disabled}
             my_advertisement_list.append(ad_filter)
     return {"data": {"message": my_advertisement_list}}, 200
 
@@ -807,17 +799,41 @@ def my_favourite_ads():
     if favourites:
         for favourite in favourites:
             advertisement=Advertisement.query.filter(Advertisement.id==favourite.ad_id).first()
-            ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
-            if os.getenv('ENV') == 'DEVELOPMENT':
-                images = os.getenv('HOME_ROUTE') + ad_images.file
-            if os.getenv('ENV') == 'PRODUCTION':
-                images = app.config['S3_LOCATION'] + ad_images.file
-            ad_filter = {"id": advertisement.id, "title": advertisement.title,
-                         "cover_image": images, "featured": advertisement.is_featured,
-                         "location": advertisement.location, "price": advertisement.price,
-                         "status": advertisement.status, "favourite": True}
-            my_favourite_list.append(ad_filter)
+            if not advertisement.is_disabled:
+                ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
+                if os.getenv('ENV') == 'DEVELOPMENT':
+                    images = os.getenv('HOME_ROUTE') + ad_images.file
+                if os.getenv('ENV') == 'PRODUCTION':
+                    images = app.config['S3_LOCATION'] + ad_images.file
+                ad_filter = {"id": advertisement.id, "title": advertisement.title,
+                             "cover_image": images, "featured": advertisement.is_featured,
+                             "location": advertisement.location, "price": advertisement.price,
+                             "status": advertisement.status, "favourite": True}
+                my_favourite_list.append(ad_filter)
     return {"data": {"message": my_favourite_list}}, 200
+
+@ad.route("/report_ad/<int:ad_id>", methods=["POST"])
+@jwt_required()
+def report_ads(ad_id):
+    person = get_jwt_identity()
+    if filtering_ad_by_id(ad_id) is None:
+        return {"data": {"error": "ad not found"}}, 400
+    if ReportAd.query.filter(ReportAd.ad_id == ad_id, ReportAd.user_id == person).first():
+        return {"data": {"error": "ad already reported by the same user"}}, 409
+    report_the_ad = ReportAd(user_id=person, ad_id=ad_id)
+    db.session.add(report_the_ad)
+    db.session.commit()
+    if ReportAd.query.filter(ReportAd.ad_id == ad_id).count() >= app.config['COUNT_OF_REPORTS']:
+        advertisement = Advertisement.query.filter_by(id=ad_id).first()
+        advertisement.is_disabled = True
+        db.session.add(advertisement)
+        db.session.commit()
+    return {"data": {"message": "ad reported"}}, 200
+
+
+
+
+
 
 
 

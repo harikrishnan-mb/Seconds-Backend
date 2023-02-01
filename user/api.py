@@ -206,7 +206,7 @@ def check_if_token_is_revoked(jwt_header, jwt_payload: dict):
 def logout():
     jti = get_jwt()["jti"]
     jwt_redis_blocklist.set(jti, "", ex=app.config["JWT_ACCESS_TOKEN_EXPIRES"])
-    return {"data":{"message":"Access token revoked"}}
+    return {"data":{"message":"Access token revoked"}}, 200
 
 def allowed_profile_image_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}

@@ -659,7 +659,7 @@ class ApiTest2(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
-        self.assertTrue(b'image should be in png, jpg or jpeg format' in response.data)
+        self.assertTrue(b'"image should be in png, webp, jpg or jpeg format"' in response.data)
 
     @patch('advertisement.api.checking_adplan_exist')
     @patch('advertisement.api.checking_category_id_exist')
@@ -1220,7 +1220,7 @@ class ApiTest2(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'data' in response.data)
-        self.assertTrue(b'image should be in png, jpg or jpeg format' in response.data)
+        self.assertTrue(b'"image should be in png, webp, jpg or jpeg format"' in response.data)
         self.assertTrue(b'error' in response.data)
 
 
