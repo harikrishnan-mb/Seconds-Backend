@@ -1,6 +1,6 @@
 from flask import Blueprint,request
 from s3config import s3
-from advertisement.models import db, Category, Advertisement, AdImage, AdPlan, FavouriteAd
+from advertisement.models import db, Category, Advertisement, AdImage, AdPlan, FavouriteAd, ReportAd
 from user.api import check_email,check_phone
 from user.models import User, UserProfile
 from user.api import get_jwt_identity,jwt_required,verify_jwt_in_request
@@ -66,9 +66,9 @@ def delete_category(category_id):
                 pass
             return deleting_the_category(category_id)
         else:
-            return {"data": {"error": "category does not exist"}}
+            return {"data": {"error": "category does not exist"}}, 400
     else:
-        return {"data": {"error": "only admin can access this route"}}
+        return {"data": {"error": "only admin can access this route"}}, 400
 
 def admin_is_true(person):
     filter_user = User.query.filter_by(id=person).first()
@@ -77,7 +77,7 @@ def admin_is_true(person):
 def deleting_the_category(category_id):
     db.session.delete(filtering_category(category_id))
     db.session.commit()
-    return {"data": {"message": "category removed"}}
+    return {"data": {"message": "category removed"}}, 200
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'svg'}
@@ -91,26 +91,26 @@ def add_category():
         file = request.files.get('file')
         parent_id = request.form["parent_id"]
         if not category:
-            return {"data": {"error": "provide category name"}}
+            return {"data": {"error": "provide category name"}}, 400
         if not file and not parent_id:
-            return {"data": {"error": "provide parent_id or file"}}
+            return {"data": {"error": "provide parent_id or file"}}, 400
         if parent_id and file:
-            return {"data": {"error": "provide image if category and provide parent_id if sub category"}}
+            return {"data": {"error": "provide image if category and provide parent_id if sub category"}}, 400
         if parent_id:
             try:
                 parent_id=float(parent_id)
             except ValueError:
-                return {"data":{"error":"parent_id should be integer"}}
+                return {"data":{"error":"parent_id should be integer"}}, 400
         if checking_category_name_already_exist(category):
-            return {"data": {"error": "category already exist"}}
+            return {"data": {"error": "category already exist"}}, 400
         if parent_id:
             if not checking_parent_id_exist(parent_id):
-                return {"data": {"error": "parent_id should be id of any category"}}
+                return {"data": {"error": "parent_id should be id of any category"}}, 400
             else:
                 category_add = Category(name=category, image="", parent_id=parent_id)
         if not parent_id or parent_id == '':
             if not allowed_file(file.filename):
-                return {"data": {"error": "image should be svg"}}
+                return {"data": {"error": "image should be svg"}}, 400
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 if os.getenv('ENV') == "DEVELOPMENT":
@@ -132,7 +132,7 @@ def checking_parent_id_exist(parent_id):
 def adding_category_to_db(category_add):
     db.session.add(category_add)
     db.session.commit()
-    return {"data": {"message": "Category created"}}
+    return {"data": {"message": "Category created"}}, 200
 
 @ad.route("/update_category/<int:category_id>", methods=["PUT"])
 @jwt_required()
@@ -147,28 +147,28 @@ def change_category(category_id):
                 return {"data": {"error": "provide category name"}}
             if checking_new_and_old_category_name_not_same(category_id, category):
                 if checking_category_name_already_exist(category):
-                    return {"data": {"error": "category already exist"}}
+                    return {"data": {"error": "category already exist"}}, 400
                 else:
                     filtering_category(category_id).name = category
             if not file and not parent_id:
-                return {"data": {"error": "provide parent_id or file"}}
+                return {"data": {"error": "provide parent_id or file"}}, 400
             if parent_id and file:
-                return {"data": {"error": "provide image if category and provide parent_id if sub category"}}
+                return {"data": {"error": "provide image if category and provide parent_id if sub category"}}, 400
             if parent_id:
                 try:
                     parent_id=float(parent_id)
                 except ValueError:
-                    return {"data":{"error":"parent_id should be integer"}}
+                    return {"data":{"error":"parent_id should be integer"}}, 400
             if parent_id:
                 # check_ids = Category.query.filter_by(id=parent_id).first()
                 if not checking_parent_id_exist(parent_id):
-                    return {"data": {"error": "parent_id should be id of any category"}}
+                    return {"data": {"error": "parent_id should be id of any category"}}, 400
 
                 filtering_category(category_id).image = ''
                 filtering_category(category_id).parent_id = parent_id
             if not parent_id or parent_id == '':
                 if not allowed_file(file.filename):
-                    return {"data": {"error": "image should be svg"}}
+                    return {"data": {"error": "image should be svg"}}, 400
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
                     if os.getenv("ENV")=="DEVELOPMENT":
@@ -181,7 +181,7 @@ def change_category(category_id):
                     filtering_category(category_id).parent_id = None
             return updating_category_in_db(category_id)
         else:
-            return {"data": {"error": "category id does not exist"}}
+            return {"data": {"error": "category id does not exist"}}, 400
     else:
         return {"data": {"error": "only admin can update category"}}, 400
 
@@ -192,7 +192,7 @@ def filtering_category(category_id):
 def updating_category_in_db(category_id):
     db.session.add(filtering_category(category_id))
     db.session.commit()
-    return {"data": {"message": "Category updated"}}
+    return {"data": {"message": "Category updated"}}, 200
 
 @ad.route("/ad_plan", methods=["GET"])
 def list_ad_plan():
@@ -207,7 +207,7 @@ def ads_plan():
     return {"data": {"message": ad_plan_list}}, 200
 
 def allowed_img_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg','webp'}
 
 def generate_random_text():
     return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for i in range(14))
@@ -270,7 +270,7 @@ def create_ad():
         if not image:
             return {"data": {"error": "provide image"}}, 400
         if image and not allowed_img_file(image.filename):
-            return {"data":{"error": "image should be in png, jpg or jpeg format"}}, 400
+            return {"data":{"error": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['msg'], "error_id": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['code']}}, 400
     if not title:
         return {"data": {"error": "provide title"}}, 400
     if not status:
@@ -380,10 +380,10 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
         except:
             session.rollback()
             session.close()
-            return {"data": {"error": "error uploading image"}}
+            return {"data": {"error": "error uploading image"}}, 400
         else:
             session.commit()
-            return {"data": {"message": "ad created"}}
+            return {"data": {"message": "ad created"}}, 200
 
 
 def checking_category_id_exist(category_id):
@@ -483,7 +483,15 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             ads.is_featured=False
             db.session.add(ads)
             db.session.commit()
-    count_of_price_range_0_to_1_lakh= Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
+    try:
+        lower_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.asc()).first().price
+    except AttributeError:
+        lower_price = None
+    try:
+        upper_price = Advertisement.query.filter(*filter_list).order_by(Advertisement.price.desc()).first().price
+    except AttributeError:
+        upper_price = None
+    count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
     count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 100000,Advertisement.price < 300000)).count()
     count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()
     count_of_price_range_greater_than_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 600000)).count()
@@ -507,7 +515,8 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad, "count": number_of_ads,
                      "below_one_lakh": count_of_price_range_0_to_1_lakh, "one_to_three_lakh": count_of_price_range_1_to_3_lakh,
-                     "three_to_six_lakh": count_of_price_range_3_to_6_lakh,"above_six_lakh": count_of_price_range_greater_than_6_lakh}}
+                     "three_to_six_lakh": count_of_price_range_3_to_6_lakh,"above_six_lakh": count_of_price_range_greater_than_6_lakh,
+                     "lower_price": lower_price, "upper_price": upper_price}}, 200
 
 
 @ad.route("/update_ad/<int:ads_id>", methods=["PUT"])
@@ -532,89 +541,89 @@ def update_ad(ads_id):
         phone = request.form.get("phone")
         email_id = request.form.get("email_id")
         if not category_id:
-            return {"data":{"error": "provide category id"}}
+            return {"data":{"error": "provide category id"}}, 400
         if not images:
-            return {"data": {"error": "image field is required"}}, 400
+            return {"data": {"error": ErrorCodes.image_field_is_required.value['msg'], 'error_id': ErrorCodes.image_field_is_required.value['code']}}, 400
         for image in images:
             if image.filename == '':
-                return {"data":{"error": "provide image"}}
+                return {"data":{"error": "provide image"}}, 400
             if image and not allowed_img_file(image.filename):
-                return {"data":{"error": "image should be in png, jpg or jpeg format"}}
+                return {"data":{"error": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['msg'],"error_id": ErrorCodes.image_should_be_in_png_webp_jpg_or_jpeg_format.value['code']}}, 400
         try:
             category_id=int(category_id)
         except ValueError:
-            return {"data": {"error": "provide category id as integer"}}
+            return {"data": {"error": "provide category id as integer"}}, 400
         if checking_category_id_exist(category_id) is None:
-            return {"data": {"error": "category id not found"}}
+            return {"data": {"error": "category id not found"}}, 400
         if not title:
-            return {"data": {"error": "provide title"}}
+            return {"data": {"error": "provide title"}}, 400
         if not status:
             status='active'
         if not seller_type:
-            return {"data": {"error": "provide seller_type"}}
+            return {"data": {"error": "provide seller_type"}}, 400
         if not description:
             description=''
         if not price:
-            return {"data": {"error": "provide price"}}
+            return {"data": {"error": "provide price"}}, 400
         try:
             price = float(price)
         except ValueError:
-            return {"data": {"error": "provide price as floating number"}}
+            return {"data": {"error": "provide price as floating number"}}, 400
         if not negotiable_product:
-            return {"data": {"error": "provide product is negotiable or not"}}
+            return {"data": {"error": "provide product is negotiable or not"}}, 400
         if negotiable_product.capitalize()=="True":
             negotiable_product=True
         elif negotiable_product.capitalize()=="False":
             negotiable_product=False
         else:
-            return {"data": {"error": "provide product is negotiable or not as True or False"}}
+            return {"data": {"error": "provide product is negotiable or not as True or False"}}, 400
         if not feature_product:
-            return {"data": {"error": "provide product is featured or not"}}
+            return {"data": {"error": "provide product is featured or not"}}, 400
         if feature_product.capitalize()=="True":
             feature_product=True
             if not ad_plan_id:
-                return {"data": {"error": "provide advertisement plan id"}}
+                return {"data": {"error": "provide advertisement plan id"}}, 400
             try:
                 ad_plan_id = int(ad_plan_id)
             except ValueError:
-                return {"data": {"error": "provide advertisement plan id as integer"}}
+                return {"data": {"error": "provide advertisement plan id as integer"}}, 400
             if not checking_adplan_exist(ad_plan_id):
-                return {"data": {"error": "advertisement plan id not found"}}
+                return {"data": {"error": "advertisement plan id not found"}}, 400
         elif feature_product.capitalize()=="False":
             feature_product=False
             ad_plan_id=None
         else:
-            return {"data": {"error": "provide product is featured or not as True or False"}}
+            return {"data": {"error": "provide product is featured or not as True or False"}}, 400
         if not location:
-            return {"data": {"error": "provide location"}}
+            return {"data": {"error": "provide location"}}, 400
         if not latitude:
-            return {"data": {"error": "provide latitude"}}
+            return {"data": {"error": "provide latitude"}},400
         try:
             latitude = float(latitude)
         except ValueError:
-            return {"data": {"error": "provide latitude as floating number"}}
+            return {"data": {"error": "provide latitude as floating number"}}, 400
         if not longitude:
-            return {"data": {"error": "provide longitude"}}
+            return {"data": {"error": "provide longitude"}}, 400
         try:
             longitude = float(longitude)
         except ValueError:
-            return {"data": {"error": "provide longitude as floating number"}}
+            return {"data": {"error": "provide longitude as floating number"}}, 400
         if  float(longitude) is False:
-            return {"data": {"error": "provide longitude as floating number"}}
+            return {"data": {"error": "provide longitude as floating number"}}, 400
         if not seller_name:
-            return {"data": {"error": "provide seller_name"}}
+            return {"data": {"error": "provide seller_name"}}, 400
         if not phone:
-            return {"data":{"error": "provide phone number"}}
+            return {"data":{"error": "provide phone number"}}, 400
         if not check_phone(phone):
-            return {"data": {"error": "provide valid phone number"}}
+            return {"data": {"error": "provide valid phone number"}}, 400
         if not email_id:
             email_id=''
         if email_id and not check_email(email_id):
-            return {"data": {"error": "provide valid email"}}
+            return {"data": {"error": "provide valid email"}}, 400
         geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
         return updating_ad_details(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo)
     else:
-        return{"data": {"error": "only owner can edit ad"}}
+        return{"data": {"error": "only owner can edit ad"}}, 400
 
 def updating_ad_details(title,person,description,category_id,status,seller_type,price,ad_plan_id,negotiable_product,feature_product,location,latitude,longitude,seller_name,phone,email_id, images, ads_id, geo):
     try:
@@ -663,9 +672,9 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
                                  is_cover_image=cover_image, ad_id=adv.id)
             db.session.add(ad_image_1)
         db.session.commit()
-        return {"data": {"message": "ad edited successfully"}}
+        return {"data": {"message": "ad edited successfully"}}, 200
     except:
-        return {"data": {"error": "error uploading image"}}
+        return {"data": {"error": "error uploading image"}}, 400
 
 @ad.route("/ad_details/<int:ad_id>", methods=["GET"])
 def details_of_ad(ad_id):
@@ -755,7 +764,7 @@ def saving_ad_as_inactive(ad_id):
 def favourite_ad(ad_id):
     person=get_jwt_identity()
     if filtering_ad_by_id(ad_id) is None:
-        return {"data": {"error": "ad not found"}},200
+        return {"data": {"error": "ad not found"}}, 400
     favourites=FavouriteAd.query.filter_by(ad_id=ad_id, user_id=person).first()
     if favourites:
         db.session.delete(favourites)
@@ -809,6 +818,8 @@ def my_favourite_ads():
                          "status": advertisement.status, "favourite": True}
             my_favourite_list.append(ad_filter)
     return {"data": {"message": my_favourite_list}}, 200
+
+
 
 
 

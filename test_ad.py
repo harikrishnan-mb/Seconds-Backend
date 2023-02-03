@@ -112,7 +112,7 @@ class ApiTest2(unittest.TestCase):
         mock_filtering_category.return_value = ''
         mock_deleting_the_category.return_value = {"data": {"message": "category removed"}}, 200
         response = self.client.delete("/ad/category_delete/1", headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'category does not exist' in response.data)
         self.assertTrue(b'error' in response.data)
@@ -126,7 +126,7 @@ class ApiTest2(unittest.TestCase):
         mock_filtering_category.return_value = ''
         mock_deleting_the_category.return_value = {"data": {"message": "category removed"}}, 200
         response = self.client.delete("/ad/category_delete/1", headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'only admin can access this route' in response.data)
         self.assertTrue(b'error' in response.data)
@@ -209,7 +209,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_new_and_old_category_name_not_same=True
         mock_updating_category_in_db.return_value = {"data": {"message": "Category updated"}}, 200
         response = self.client.put("/ad/update_category/1", headers=self.access_token, data=category_add)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'category id does not exist' in response.data)
@@ -714,7 +714,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = False
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'only owner can edit ad' in response.data)
@@ -735,7 +735,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide category id' in response.data)
@@ -756,7 +756,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide category id as integer' in response.data)
@@ -777,7 +777,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'category id not found' in response.data)
@@ -798,7 +798,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide title' in response.data)
@@ -819,7 +819,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide advertisement plan id as integer' in response.data)
@@ -840,7 +840,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = None
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'advertisement plan id not found' in response.data)
@@ -861,7 +861,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is negotiable or not as True or False' in response.data)
@@ -881,7 +881,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is negotiable or not as True or False' in response.data)
@@ -902,7 +902,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is negotiable or not' in response.data)
@@ -922,7 +922,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is featured or not as True or False' in response.data)
@@ -943,7 +943,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is featured or not as True or False' in response.data)
@@ -964,7 +964,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide product is featured or not' in response.data)
@@ -985,7 +985,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide seller_name' in response.data)
@@ -1006,7 +1006,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide price' in response.data)
@@ -1027,7 +1027,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide latitude' in response.data)
@@ -1048,7 +1048,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide latitude as floating number' in response.data)
@@ -1069,7 +1069,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide longitude as floating number' in response.data)
@@ -1090,7 +1090,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide valid email' in response.data)
@@ -1132,7 +1132,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide phone number' in response.data)
@@ -1153,7 +1153,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token, data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'provide valid phone number' in response.data)
@@ -1217,7 +1217,7 @@ class ApiTest2(unittest.TestCase):
         mock_checking_adplan_exist.return_value = "ad plan"
         mock_checking_person_posted_ad.return_value = True
         response = self.client.put("/ad/update_ad/1", headers=self.access_token , data=create_ad_obj)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'image should be in png, jpg or jpeg format' in response.data)

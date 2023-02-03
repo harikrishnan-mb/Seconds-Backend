@@ -323,7 +323,7 @@ class ApiTest1(unittest.TestCase):
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
 
         response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
@@ -345,7 +345,7 @@ class ApiTest1(unittest.TestCase):
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
 
         response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
@@ -367,7 +367,7 @@ class ApiTest1(unittest.TestCase):
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
 
         response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
@@ -389,7 +389,7 @@ class ApiTest1(unittest.TestCase):
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
 
         response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
@@ -411,7 +411,7 @@ class ApiTest1(unittest.TestCase):
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
 
         response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
@@ -434,7 +434,7 @@ class ApiTest1(unittest.TestCase):
         mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
 
         response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)

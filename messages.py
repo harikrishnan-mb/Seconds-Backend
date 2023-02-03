@@ -19,3 +19,4 @@ class ErrorCodes(Enum):
     new_password_should_not_be_same_as_previous_password={'msg': "new password should not be same as previous password", 'code':1017}
     key_not_found={'msg': "key not found", 'code':1018}
     image_field_is_required={'msg': "image field is required", 'code':1019}
+    image_should_be_in_png_webp_jpg_or_jpeg_format={'msg': "image should be in png, webp, jpg or jpeg format", 'code':1020}
