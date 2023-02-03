@@ -25,4 +25,5 @@ def get_app():
         app.config['S3_KEY'] = os.getenv("AWS_ACCESS_KEY")
         app.config['S3_SECRET'] = os.getenv("AWS_ACCESS_SECRET")
         app.config['S3_LOCATION'] = os.getenv('S3_LOCATION')
+        app.config['COUNT_OF_REPORTS'] = 2
     return app
