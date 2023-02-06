@@ -1,5 +1,4 @@
 from flask import request, Blueprint
-from datetime import timedelta
 from messages import ErrorCodes
 from createapp import get_app
 import re
@@ -18,7 +17,6 @@ load_dotenv
 user = Blueprint('user', __name__)
 app = get_app()
 jwt = JWTManager(app)
-
 
 @user.route('/signup', methods=['POST'])
 def signup():
@@ -86,7 +84,7 @@ def check_email(email):
         return False
 
 def password_check(passwd):
-    special_sym = ['$', '@', '#', '%']
+    special_sym = ['!','"','#','$','%','&','(',')','*','+','-','.','/',':',';','<','=','>','?','@','[',']','^','_','{','|','}','~',"'"]
     val = True
 
     if len(passwd) < 6:

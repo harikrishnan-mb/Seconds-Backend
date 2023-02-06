@@ -6,6 +6,7 @@ try:
     from flask_jwt_extended import create_access_token, create_refresh_token
     import json
     from user.api import hashing_password
+    from user.models import User, UserProfile
     import redis
 except Exception as e:
     print('Some modules are missing {}'.format(e))
@@ -462,6 +463,20 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'phone' in response.data)
         self.assertTrue(b'photo' in response.data)
         self.assertTrue(b'name' in response.data)
+
+    def test_new_user(self):
+        user = User(email='user@gmail.com',hashed_password='password',username="test_name",is_admin=True)
+        assert user.email == 'user@gmail.com'
+        assert user.hashed_password != 'hashed_password'
+        assert user.username == "test_name"
+        assert user.is_admin == True
+    def test_new_user_profile(self):
+        user = UserProfile(name="test",phone=7878787865,address='address',photo="photo",user_id=1)
+        assert user.name == "test"
+        assert user.phone == 7878787865
+        assert user.address == 'address'
+        assert user.photo == "photo"
+        assert user.user_id == 1
 
 if __name__=="__main__":
     unittest.main()
