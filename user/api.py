@@ -139,8 +139,7 @@ def checking_userpassword(username, password):
         access_token = create_access_token(identity=user_in.id, fresh=True)
         refresh_token = create_refresh_token(identity=user_in.id)
         return {"data":
-                    {"message": "Login successful"},"tokens": {"access_token": access_token,
-                           "refresh_token": refresh_token}}, 200
+                    {"message": "Login successful"},"tokens": {"access_token": access_token, "refresh_token": refresh_token}}, 200
 
 @user.route('/refresh', methods=["GET"])
 @jwt_required(refresh=True)

@@ -22,11 +22,10 @@ engine=create_engine(os.getenv("ENGINE"))
 
 @ad.route("/list_every_category", methods=["GET"])
 def list_every_category():
-    return get_every_categories()
-def get_every_categories():
-    categories = Category.query.filter_by(parent_id=None).order_by(Category.id).all()
     categories_list = []
-    for category in categories:
+    return get_every_categories(categories_list)
+def get_every_categories(categories_list):
+    for category in filtering_main_category():
         sub_categories_list = []
         sub_categories = Category.query.filter_by(parent_id=category.id).all()
         for sub_category in sub_categories:
@@ -39,13 +38,16 @@ def get_every_categories():
         categories_list.append(category_name)
     return {"data": {"message": categories_list}}, 200
 
+def filtering_main_category():
+    return Category.query.filter_by(parent_id=None).order_by(Category.id).all()
+
 @ad.route("/category", methods=["GET"])
 def list_category():
-    return get_only_categories()
-def get_only_categories():
-    categories=Category.query.filter_by(parent_id=None).order_by(Category.id).all()
-    categories_list=[]
-    for category in categories:
+    categories_list = []
+    return get_only_categories(categories_list)
+
+def get_only_categories(categories_list):
+    for category in filtering_main_category():
         if os.getenv('ENV') == 'DEVELOPMENT':
             category_name = {"id":category.id, "name": category.name, "images": os.getenv("HOME_ROUTE")+category.image}
         if os.getenv('ENV') == 'PRODUCTION':
@@ -71,8 +73,7 @@ def delete_category(category_id):
         return {"data": {"error": "only admin can access this route"}}, 400
 
 def admin_is_true(person):
-    filter_user = User.query.filter_by(id=person).first()
-    return filter_user.is_admin
+    return User.query.filter_by(id=person).first().is_admin
 
 def deleting_the_category(category_id):
     db.session.delete(filtering_category(category_id))
@@ -116,8 +117,7 @@ def add_category():
                 if os.getenv('ENV') == "DEVELOPMENT":
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 if os.getenv('ENV') == "PRODUCTION":
-                    s3.upload_fileobj(file, app.config['S3_BUCKET'], 'static/catagory/' + filename,
-                        ExtraArgs={"ACL": "public-read","ContentType": file.content_type})
+                    s3.upload_fileobj(file, app.config['S3_BUCKET'], 'static/catagory/' + filename, ExtraArgs={"ACL": "public-read","ContentType": file.content_type})
                 category_add = Category(name=category, image='static/catagory/' + filename, parent_id=None)
         return adding_category_to_db(category_add)
     else:
@@ -196,15 +196,16 @@ def updating_category_in_db(category_id):
 
 @ad.route("/ad_plan", methods=["GET"])
 def list_ad_plan():
-    return ads_plan()
-
-def ads_plan():
-    ad_plans = AdPlan.query.all()
     ad_plan_list = []
+    return ads_plan(ad_plan_list)
+
+def ads_plan(ad_plan_list):
+    ad_plans = AdPlan.query.all()
     for ad_plan in ad_plans:
         ad_plan_name = {"id": ad_plan.id, "price": ad_plan.price, "days": ad_plan.days}
         ad_plan_list.append(ad_plan_name)
     return {"data": {"message": ad_plan_list}}, 200
+
 
 def allowed_img_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg','webp'}
@@ -227,8 +228,7 @@ def checking_user_posted_ad(del_ad_id, person):
     return filtering_ad_by_id(del_ad_id).user_id == person
 
 def filtering_ad_by_id(del_ad_id):
-    filter_advertisement = Advertisement.query.filter_by(id=del_ad_id).first()
-    return filter_advertisement
+    return Advertisement.query.filter_by(id=del_ad_id).first()
 
 def deleting_ad(del_ad_id):
     filtering_ad_by_id(del_ad_id).is_deleted = True
@@ -377,18 +377,19 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
 
 
 def checking_category_id_exist(category_id):
-    category=Category.query.filter_by(id=int(category_id)).first()
-    return category
+    return Category.query.filter_by(id=int(category_id)).first()
+
 
 def checking_adplan_exist(ad_plan_id):
-    plan=AdPlan.query.filter_by(id=ad_plan_id).first()
-    return plan
+    return AdPlan.query.filter_by(id=ad_plan_id).first()
+
 
 @ad.route("/view_ad", methods=["GET"], defaults={"page": 1})
 @ad.route("/view_ad/<int:page>", methods=["GET"])
 def view_ad(page):
-    sorts=[Advertisement.is_featured.desc() ]
-    filter_list= [Advertisement.status=="active", Advertisement.is_deleted==False, Advertisement.is_disabled==False]
+    sorts = [Advertisement.is_featured.desc() ]
+    filter_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.is_disabled == False]
+    count_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.is_disabled == False]
 
     #filtering based on min_price, max_price, main_category_id and subcategory_id
     if "max_price" in request.args:
@@ -418,6 +419,7 @@ def view_ad(page):
                 sub_category_list.append(sub_category.id)
         category_ids=Advertisement.category_id.in_(sub_category_list)
         filter_list.append(category_ids)
+        count_list.append(category_ids)
 
     # sorting based on time, price: high to low and price: low to high
     if "sort" in request.args:
@@ -442,17 +444,18 @@ def view_ad(page):
         loc_radius=20000
         query=(func.ST_Distance(Advertisement.geo, loc_point) < loc_radius)
         filter_list.append(query)
+        count_list.append(query)
 
     #searching
     if "search" in request.args:
         search = request.args["search"]
         search_lists=search.split(' ')
-        searching_the_ad(search_lists,filter_list)
+        searching_the_ad(search_lists,filter_list,count_list)
 
     list_ad = []
-    return listing_the_ad(filter_list,sorts,list_ad, page)
+    return listing_the_ad(filter_list,sorts,list_ad,page,count_list)
 
-def searching_the_ad(search_lists,filter_list):
+def searching_the_ad(search_lists,filter_list,count_list):
     for search_list in search_lists:
         ads = Advertisement.query.filter(func.lower(Advertisement.title).contains(func.lower(search_list))).first()
         categories = Category.query.filter(func.lower(Category.name).contains(func.lower(search_list))).first()
@@ -465,10 +468,11 @@ def searching_the_ad(search_lists,filter_list):
         else:
             search_query=None
         filter_list.append(search_query)
-    return filter_list
+        count_list.append(search_query)
+    return filter_list, count_list
 
 
-def listing_the_ad(filter_list,sorts,list_ad, page):
+def listing_the_ad(filter_list,sorts,list_ad,page,count_list):
     adv=Advertisement.query.filter_by(is_featured=True).all()
     for ads in adv:
         plan=AdPlan.query.filter_by(id=ads.advertising_plan_id).first()
@@ -476,10 +480,10 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             ads.is_featured=False
             db.session.add(ads)
             db.session.commit()
-    count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*filter_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
-    count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 100000,Advertisement.price < 300000)).count()
-    count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()
-    count_of_price_range_greater_than_6_lakh = Advertisement.query.filter(*filter_list, and_(Advertisement.price >= 600000)).count()
+    count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*count_list,and_(Advertisement.price>=0, Advertisement.price<100000)).count()
+    count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*count_list, and_(Advertisement.price >= 100000,Advertisement.price < 300000)).count()
+    count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*count_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()
+    count_of_price_range_greater_than_6_lakh = Advertisement.query.filter(*count_list, and_(Advertisement.price >= 600000)).count()
     advertisements = Advertisement.query.filter(*filter_list).order_by(*sorts).paginate(page=page,per_page=12,error_out=False)
     number_of_ads=Advertisement.query.filter(*filter_list).count()
     for advertisement in advertisements:
@@ -494,8 +498,7 @@ def listing_the_ad(filter_list,sorts,list_ad, page):
             images=os.getenv('HOME_ROUTE') + ad_images.file
         if os.getenv('ENV')=='PRODUCTION':
             images=app.config['S3_LOCATION'] + ad_images.file
-        ad_filter = {"id": advertisement.id, "title": advertisement.title,
-                     "cover_image": images, "featured": advertisement.is_featured,
+        ad_filter = {"id": advertisement.id, "title": advertisement.title, "cover_image": images, "featured": advertisement.is_featured,
                      "location": advertisement.location, "price": advertisement.price, "status":advertisement.status, "favourite": is_liked}
         list_ad.append(ad_filter)
     return {"data": {"message": list_ad, "count": number_of_ads, "below_one_lakh": count_of_price_range_0_to_1_lakh, "one_to_three_lakh": count_of_price_range_1_to_3_lakh,
@@ -626,7 +629,7 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
         adv.phone = phone
         adv.email = email_id
         adv.geo = geo
-        adv.updated_at=datetime.utcnow()
+        adv.updated_at=datetime.now()
         ad_images = AdImage.query.filter_by(ad_id=ads_id).all()
         for ad_image in ad_images:
             db.session.delete(ad_image)
@@ -640,10 +643,8 @@ def updating_ad_details(title,person,description,category_id,status,seller_type,
             if os.getenv('ENV') == 'DEVELOPMENT':
                 image.save(os.path.join(app.config['UPLOAD_AD_PICTURE'], filename))
             if os.getenv('ENV') == 'PRODUCTION':
-                s3.upload_fileobj(image, app.config['S3_BUCKET'],'static/images_ad/' + filename,
-                    ExtraArgs={"ACL": "public-read", "ContentType": image.content_type})
-            ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename,
-                                 is_cover_image=cover_image, ad_id=adv.id)
+                s3.upload_fileobj(image, app.config['S3_BUCKET'],'static/images_ad/' + filename, ExtraArgs={"ACL": "public-read", "ContentType": image.content_type})
+            ad_image_1 = AdImage(display_order=display_order, file='static/images_ad/' + filename, is_cover_image=cover_image, ad_id=adv.id)
             db.session.add(ad_image_1)
         db.session.commit()
         return {"data": {"message": "ad edited successfully"}}, 200

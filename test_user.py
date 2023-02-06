@@ -22,7 +22,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup1(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
+    def test_signup_error_empty_email(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "",
             "username": "testuser",
@@ -39,7 +39,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup2(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
+    def test_signup_error_empty_username(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "testuser@yahoo.com",
             "username": "",
@@ -56,7 +56,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup3(self, mock_saving_user_to_db, mock_checking_username_exist,mock_checking_mail_exist):
+    def test_signup_message(self, mock_saving_user_to_db, mock_checking_username_exist,mock_checking_mail_exist):
         signup_obj = {
                       "email_id": "testuser@gmail.com",
                       "username": "testuser",
@@ -73,7 +73,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup4(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
+    def test_signup_error_email(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "",
             "username": "Testuser@1",
@@ -90,7 +90,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup5(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
+    def test_signup_error_username_exist(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "testuser@gmail.com",
             "username": "Testuser1",
@@ -107,7 +107,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
-    def test_signup6(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
+    def test_signup_error_email_exists(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
         signup_obj = {
             "email_id": "testuser@gmail.com",
             "username": "Testuser1",
@@ -127,7 +127,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
-    def test_login1(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
+    def test_login_error_incorrect_username(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
             "password": "Admin@123"}
@@ -145,7 +145,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
-    def test_login2(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
+    def test_login_error_incorrect_password(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
             "password": "Admin@123"}
@@ -163,7 +163,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
-    def test_login3(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
+    def test_login_message_access_token(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
             "password": "Admin@123"}
@@ -179,21 +179,21 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'data' in response.data)
 
 
-    def test_refresh1(self):
+    def test_refresh_message_access_token(self):
         response = self.client.get("/user/refresh", headers=self.refresh_token)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'access_token' in response.data)
         self.assertTrue(b'data' in response.data)
 
-    def test_refresh2(self):
+    def test_refresh_error_jwt(self):
         response = self.client.get("/user/refresh")
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.content_type, "application/json")
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword1(self, mock_matching_password, mock_saving_new_password):
+    def test_resetpassword_message_successful(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@123",
             "new_password": "Admin@1234"}
@@ -209,7 +209,7 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword2(self, mock_matching_password, mock_saving_new_password):
+    def test_reset_password_error_current_password_missing(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "",
             "new_password": "Admin@1234"}
@@ -225,7 +225,7 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword3(self, mock_matching_password, mock_saving_new_password):
+    def test_reset_password3_error_provide_new_password(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": ""}
@@ -241,7 +241,7 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword4(self, mock_matching_password, mock_saving_new_password):
+    def test_reset_password_error_previous_password_and_current_password_same(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": "Admin@1234"}
@@ -257,7 +257,7 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword5(self, mock_matching_password, mock_saving_new_password):
+    def test_reset_password_error_password_format(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": "Admin1234"}
@@ -273,7 +273,7 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_resetpassword6(self, mock_matching_password, mock_saving_new_password):
+    def test_reset_password_error_incorrect_password(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": "Admin1234"}
@@ -290,7 +290,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile1(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,mock_saving_updated_profile):
+    def test_update_profile_message(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
             "email_id": "test@gmail.com",
@@ -311,7 +311,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile2(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+    def test_update_profile_error_provide_valid_email(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                             mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
@@ -333,7 +333,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile3(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+    def test_update_profile_error_provide_address(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                             mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
@@ -355,7 +355,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile4(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+    def test_update_profile_error_provide_email(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                             mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
@@ -377,7 +377,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile5(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+    def test_update_profile_error_provide_name(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                              mock_saving_updated_profile):
         update_profile_obj = {
             "name": "",
@@ -399,7 +399,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile6(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+    def test_update_profile_error_provide_valid_phone_number(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                              mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
@@ -422,7 +422,7 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
-    def test_update_profile_7(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+    def test_update_profile__error_image_format(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                               mock_saving_updated_profile):
         update_profile_obj = {
             "name": "Demo",
