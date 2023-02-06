@@ -464,13 +464,13 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'photo' in response.data)
         self.assertTrue(b'name' in response.data)
 
-    def test_new_user(self):
+    def test_create_new_user(self):
         user = User(email='user@gmail.com',hashed_password='password',username="test_name",is_admin=True)
         assert user.email == 'user@gmail.com'
         assert user.hashed_password != 'hashed_password'
         assert user.username == "test_name"
         assert user.is_admin == True
-    def test_new_user_profile(self):
+    def test_create_new_user_profile(self):
         user = UserProfile(name="test",phone=7878787865,address='address',photo="photo",user_id=1)
         assert user.name == "test"
         assert user.phone == 7878787865

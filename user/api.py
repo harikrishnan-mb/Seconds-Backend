@@ -5,6 +5,7 @@ import re
 import os
 from user.models import User, UserProfile
 from user.models import db
+import string
 import bcrypt
 import redis
 from s3config import s3
@@ -84,9 +85,7 @@ def check_email(email):
         return False
 
 def password_check(passwd):
-    special_sym = ['!','"','#','$','%','&','(',')','*','+','-','.','/',':',';','<','=','>','?','@','[',']','^','_','{','|','}','~',"'"]
     val = True
-
     if len(passwd) < 6:
         val = False
     if len(passwd) > 20:
@@ -97,7 +96,7 @@ def password_check(passwd):
         val = False
     if not any(char.islower() for char in passwd):
         val = False
-    if not any(char in special_sym for char in passwd):
+    if not any(char in string.punctuation for char in passwd):
         val = False
     if val:
         return val
