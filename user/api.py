@@ -86,7 +86,7 @@ def check_email(email):
 
 def password_check(passwd):
     val = True
-    if len(passwd) < 6:
+    if len(passwd) < 8:
         val = False
     if len(passwd) > 20:
         val = False

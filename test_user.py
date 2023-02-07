@@ -5,7 +5,7 @@ try:
     from unittest.mock import Mock, patch
     from flask_jwt_extended import create_access_token, create_refresh_token
     import json
-    from user.api import hashing_password
+    from user.api import hashing_password, password_check
     from user.models import User, UserProfile
     import redis
 except Exception as e:
@@ -35,6 +35,109 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error')
         self.assertTrue(b'email cannot be empty')
+
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_username_exist')
+    @patch('user.api.saving_user_to_db')
+    def test_signup_error_empty_password(self, mock_saving_user_to_db, mock_checking_username_exist,
+                                      mock_checking_mail_exist):
+        signup_obj = {
+            "email_id": "demo@gmail.com",
+            "username": "testuser",
+            "password": ""}
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
+        response = self.client.post("/user/signup", json=signup_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error')
+        self.assertTrue(b'password cannot be empty')
+
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_username_exist')
+    @patch('user.api.saving_user_to_db')
+    def test_signup_error_empty_password(self, mock_saving_user_to_db, mock_checking_username_exist,
+                                         mock_checking_mail_exist):
+        signup_obj = {
+            "email_id": "demo@gmail.com",
+            "username": "testuser",
+            "password": ""}
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
+        response = self.client.post("/user/signup", json=signup_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error')
+        self.assertTrue(b'password cannot be empty')
+
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_username_exist')
+    @patch('user.api.saving_user_to_db')
+    def test_signup_error_password_format(self, mock_saving_user_to_db, mock_checking_username_exist,
+                                              mock_checking_mail_exist):
+        signup_obj = {
+            "email_id": "user@gmail.com",
+            "username": "testersa",
+            "password": "Dem@123"}
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
+        response = self.client.post("/user/signup", json=signup_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error')
+        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8')
+
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_username_exist')
+    @patch('user.api.saving_user_to_db')
+    def test_signup_error_provide_valid_username(self, mock_saving_user_to_db, mock_checking_username_exist,
+                                          mock_checking_mail_exist):
+        signup_obj = {
+            "email_id": "user@gmail.com",
+            "username": "test",
+            "password": "Demo@123"}
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
+        response = self.client.post("/user/signup", json=signup_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error')
+        self.assertTrue(b'provide valid username')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_username_exist')
+    @patch('user.api.saving_user_to_db')
+    def test_signup_error_provide_valid_email(self, mock_saving_user_to_db, mock_checking_username_exist,
+                                         mock_checking_mail_exist):
+        signup_obj = {
+            "email_id": "@gmail.com",
+            "username": "testuser",
+            "password": "Demo@123"}
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
+        response = self.client.post("/user/signup", json=signup_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error')
+        self.assertTrue(b'provide a valid email')
+
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_username_exist')
+    @patch('user.api.saving_user_to_db')
+    def test_signup_error_keys_not_found(self, mock_saving_user_to_db, mock_checking_username_exist, mock_checking_mail_exist):
+        signup_obj = { }
+        mock_saving_user_to_db.return_value = {"data": {"message": "user created"}}, 200
+        mock_checking_username_exist.return_value = None
+        mock_checking_mail_exist.return_value = None
+        response = self.client.post("/user/signup", json=signup_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error')
+        self.assertTrue(b'provide all signup keys')
 
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
@@ -145,6 +248,42 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.checking_userpassword')
     @patch('user.api.password_match')
     @patch('user.api.checking_username_exist')
+    def test_login_error_password_key_not_found(self, mock_checking_username_exist, mock_password_match,
+                                            mock_checking_userpassword):
+        login_obj = {
+            "username": "vigdelh11",
+            "password": ""}
+        mock_checking_username_exist.return_value = True
+        mock_password_match.return_value = True
+        mock_checking_userpassword.return_value = {"data": {"message": "Login successful"},
+                                                   "tokens": {"access_token": "access token",
+                                                              "refresh_token": "refresh token"}}, 200
+        response = self.client.post("/user/login", json=login_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'provide password' in response.data)
+
+    @patch('user.api.checking_userpassword')
+    @patch('user.api.password_match')
+    @patch('user.api.checking_username_exist')
+    def test_login_error_all_keys_not_found(self, mock_checking_username_exist, mock_password_match,
+                                            mock_checking_userpassword):
+        login_obj = {}
+        mock_checking_username_exist.return_value = None
+        mock_password_match.return_value = True
+        mock_checking_userpassword.return_value = {"data": {"message": "Login successful"},
+                                                   "tokens": {"access_token": "access token",
+                                                              "refresh_token": "refresh token"}}, 200
+        response = self.client.post("/user/login", json=login_obj)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'provide all login keys' in response.data)
+
+    @patch('user.api.checking_userpassword')
+    @patch('user.api.password_match')
+    @patch('user.api.checking_username_exist')
     def test_login_error_incorrect_password(self, mock_checking_username_exist, mock_password_match, mock_checking_userpassword):
         login_obj = {
             "username": "vigdelh11",
@@ -191,6 +330,24 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.content_type, "application/json")
 
+    def test_password_check(self):
+        assert password_check("Passwd@2%^&***&022") == True
+
+    def test_password_check_max_length(self):
+        assert password_check("Passwd@022jkhafvcahewiladgcukgvsaewvbhwse") != True
+
+    def test_password_check_min_length(self):
+        assert password_check("Pas") != True
+
+    def test_password_check_uppercase(self):
+        assert password_check("pas@10") != True
+
+    def test_password_check_lowercase(self):
+        assert password_check("TEST@10") != True
+
+    def test_password_check_special_character(self):
+        assert password_check("Test10") != True
+
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
     def test_resetpassword_message_successful(self, mock_matching_password, mock_saving_new_password):
@@ -225,7 +382,7 @@ class ApiTest1(unittest.TestCase):
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
-    def test_reset_password3_error_provide_new_password(self, mock_matching_password, mock_saving_new_password):
+    def test_reset_password_error_provide_new_password(self, mock_matching_password, mock_saving_new_password):
         reset_password_obj = {
             "current_password": "Admin@1234",
             "new_password": ""}
@@ -269,7 +426,7 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
-        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 6' in response.data)
+        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8' in response.data)
 
     @patch('user.api.saving_new_password')
     @patch('user.api.matching_password')
@@ -286,6 +443,29 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'incorrect password' in response.data)
+
+    @patch('user.api.saving_new_password')
+    @patch('user.api.matching_password')
+    def test_reset_password_error_key_not_found(self, mock_matching_password, mock_saving_new_password):
+        reset_password_obj = { }
+        mock_matching_password.return_value = True
+        mock_saving_new_password.return_value = {"data": {"message": "password changed successfully"}}, 200
+
+        response = self.client.put("/user/reset_password", json=reset_password_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'key not found' in response.data)
+
+    def test_logout_message(self):
+        with app.app_context():
+            access_token = dict(Authorization='Bearer ' + create_access_token(identity=1243))
+        response = self.client.delete("/user/logout", headers=access_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'message' in response.data)
+        self.assertTrue(b'Access token revoked' in response.data)
 
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
@@ -377,6 +557,28 @@ class ApiTest1(unittest.TestCase):
     @patch('user.api.saving_updated_profile')
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile_error_provide_phone_number(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                                                mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Demo",
+            "email_id": "demo@gmail.com",
+            "phone": "",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
+        mock_checking_new_and_old_mail_not_same.return_value = False
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'provide phone number' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
     def test_update_profile_error_provide_name(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
                              mock_saving_updated_profile):
         update_profile_obj = {
@@ -417,6 +619,27 @@ class ApiTest1(unittest.TestCase):
         self.assertTrue(b'error' in response.data)
         self.assertTrue(b'data' in response.data)
         self.assertTrue(b'phone number not valid' in response.data)
+
+    @patch('user.api.saving_updated_profile')
+    @patch('user.api.checking_mail_exist')
+    @patch('user.api.checking_new_and_old_mail_not_same')
+    def test_update_profile_error_email_id_exist(self, mock_checking_new_and_old_mail_not_same, mock_checking_mail_exist,
+                                               mock_saving_updated_profile):
+        update_profile_obj = {
+            "name": "Dem",
+            "email_id": "demo@gmail.com",
+            "phone": "8989889989",
+            "address": "address",
+            "photo": (io.BytesIO(b'static/iphone13pro.jpg'), 'profile.jpg')}
+        mock_checking_new_and_old_mail_not_same.return_value = True
+        mock_checking_mail_exist.return_value = True
+        mock_saving_updated_profile.return_value = {"data": {"message": 'profile updated successfully'}}, 200
+        response = self.client.put("/user/update_profile", data=update_profile_obj, headers=self.access_token)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.content_type, "application/json")
+        self.assertTrue(b'error' in response.data)
+        self.assertTrue(b'data' in response.data)
+        self.assertTrue(b'email already exists' in response.data)
 
 
     @patch('user.api.saving_updated_profile')

@@ -10,7 +10,7 @@ class ErrorCodes(Enum):
     password_cannot_be_empty={'msg': "password cannot be empty", 'code':1007}
     provide_a_valid_email={'msg': "provide a valid email", 'code':1008}
     provide_a_valid_username={'msg': "provide a valid username", 'code':1009}
-    password_format_not_matching={'msg': "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 6", 'code':1010}
+    password_format_not_matching={'msg': "current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8", 'code':1010}
     username_already_exists={'msg': "username already exists", 'code':1011}
     email_already_exists={'msg': "email already exists", 'code':1012}
     provide_all_signup_keys={'msg': "provide all signup keys", 'code':1013}
