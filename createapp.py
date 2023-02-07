@@ -18,7 +18,7 @@ def get_app():
         app.config['UPLOADED_PROFILE_DEST'] = 'static/profile'
         app.config["JWT_SECRET_KEY"] = os.getenv("JWT")
         app.config['UPLOAD_AD_PICTURE'] = 'static/images_ad'
-        app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=130)
+        app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=1440)
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
         app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE')
         app.config['S3_BUCKET'] = os.getenv('S3_BUCKET_NAME')

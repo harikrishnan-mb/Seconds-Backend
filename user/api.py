@@ -1,11 +1,11 @@
 from flask import request, Blueprint
-from datetime import timedelta
 from messages import ErrorCodes
 from createapp import get_app
 import re
 import os
 from user.models import User, UserProfile
 from user.models import db
+import string
 import bcrypt
 import redis
 from s3config import s3
@@ -18,7 +18,6 @@ load_dotenv
 user = Blueprint('user', __name__)
 app = get_app()
 jwt = JWTManager(app)
-
 
 @user.route('/signup', methods=['POST'])
 def signup():
@@ -86,9 +85,7 @@ def check_email(email):
         return False
 
 def password_check(passwd):
-    special_sym = ['$', '@', '#', '%']
     val = True
-
     if len(passwd) < 6:
         val = False
     if len(passwd) > 20:
@@ -99,7 +96,7 @@ def password_check(passwd):
         val = False
     if not any(char.islower() for char in passwd):
         val = False
-    if not any(char in special_sym for char in passwd):
+    if not any(char in string.punctuation for char in passwd):
         val = False
     if val:
         return val
@@ -142,8 +139,7 @@ def checking_userpassword(username, password):
         access_token = create_access_token(identity=user_in.id, fresh=True)
         refresh_token = create_refresh_token(identity=user_in.id)
         return {"data":
-                    {"message": "Login successful"},"tokens": {"access_token": access_token,
-                           "refresh_token": refresh_token}}, 200
+                    {"message": "Login successful"},"tokens": {"access_token": access_token, "refresh_token": refresh_token}}, 200
 
 @user.route('/refresh', methods=["GET"])
 @jwt_required(refresh=True)
