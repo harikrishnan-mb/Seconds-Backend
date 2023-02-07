@@ -27,8 +27,7 @@ def list_every_category():
 def get_every_categories(categories_list):
     for category in filtering_main_category():
         sub_categories_list = []
-        sub_categories = Category.query.filter_by(parent_id=category.id).all()
-        for sub_category in sub_categories:
+        for sub_category in Category.query.filter_by(parent_id=category.id).all():
             sub_category_name = {"id": sub_category.id, "name": sub_category.name}
             sub_categories_list.append(sub_category_name)
         if os.getenv('ENV') == 'DEVELOPMENT':
@@ -144,7 +143,7 @@ def change_category(category_id):
             file = request.files.get('file')
             parent_id = request.form["parent_id"]
             if not category:
-                return {"data": {"error": "provide category name"}}
+                return {"data": {"error": "provide category name"}}, 400
             if checking_new_and_old_category_name_not_same(category_id, category):
                 if checking_category_name_already_exist(category):
                     return {"data": {"error": "category already exist"}}, 400
@@ -174,8 +173,7 @@ def change_category(category_id):
                     if os.getenv("ENV")=="DEVELOPMENT":
                         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     if os.getenv("ENV") == "PRODUCTION":
-                        s3.upload_fileobj(file, app.config['S3_BUCKET'], 'static/catagory/' + filename,
-                                          ExtraArgs={"ACL": "public-read", "ContentType": file.content_type})
+                        s3.upload_fileobj(file, app.config['S3_BUCKET'], 'static/catagory/' + filename, ExtraArgs={"ACL": "public-read", "ContentType": file.content_type})
 
                     filtering_category(category_id).image = 'static/catagory/' + filename
                     filtering_category(category_id).parent_id = None
@@ -342,14 +340,11 @@ def saving_created_ad(title,person,description,category_id,status,seller_type,pr
     with Session(engine) as session:
         session.begin()
         try:
-            ad_1 = Advertisement(title=title, user_id=get_jwt_identity(),
-                                 description=description, category_id=category_id,
-                                 status=status, seller_type=seller_type,
-                                 price=price, advertising_plan_id=ad_plan_id, is_deleted=False,
-                                 is_negotiable=negotiable_product, is_featured=feature_product,
-                                 location=location, latitude=latitude, longitude=longitude,
-                                 seller_name=seller_name, phone=phone, email=email_id,
-                                 advertising_id=generate_random_text(), geo=geo)
+            ad_1 = Advertisement(title=title, user_id=get_jwt_identity(), description=description, category_id=category_id,
+                                 status=status, seller_type=seller_type, price=price, advertising_plan_id=ad_plan_id, is_deleted=False,
+                                 is_negotiable=negotiable_product, is_featured=feature_product,location=location, latitude=latitude, longitude=longitude,
+                                 seller_name=seller_name, phone=phone, email=email_id, advertising_id=generate_random_text(), geo=geo)
+
             session.add(ad_1)
             for image in images:
                 display_order = images.index(image) + 1
@@ -737,10 +732,8 @@ def showing_similar_ads(advertisement,is_liked,list_recommended_ad):
         images = os.getenv('HOME_ROUTE') + ad_images.file
     if os.getenv('ENV') == 'PRODUCTION':
         images = app.config['S3_LOCATION'] + ad_images.file
-    ad_filter = {"id": advertisement.id, "title": advertisement.title,
-                 "cover_image": images, "featured": advertisement.is_featured,
-                 "location": advertisement.location, "price": advertisement.price, "status": advertisement.status,
-                 "favourite": is_liked}
+    ad_filter = {"id": advertisement.id, "title": advertisement.title, "cover_image": images, "featured": advertisement.is_featured,
+                 "location": advertisement.location, "price": advertisement.price, "status": advertisement.status, "favourite": is_liked}
     return list_recommended_ad.append(ad_filter)
 
 @ad.route("/remove_ad/<int:ad_id>", methods=["PUT"])
@@ -808,8 +801,7 @@ def returning_ad_created_by_user(advertisement, is_liked,my_advertisement_list):
     if os.getenv('ENV') == 'PRODUCTION':
         images = app.config['S3_LOCATION'] + ad_images.file
     ad_filter = {"id": advertisement.id, "title": advertisement.title, "cover_image": images, "featured": advertisement.is_featured,
-                 "location": advertisement.location, "price": advertisement.price, "status": advertisement.status, "favourite": is_liked,
-                 "disabled": advertisement.is_disabled}
+                 "location": advertisement.location, "price": advertisement.price, "status": advertisement.status, "favourite": is_liked, "disabled": advertisement.is_disabled}
     my_advertisement_list.append(ad_filter)
 
 @ad.route("/my_favourite_ad", methods=["GET"])
@@ -858,9 +850,8 @@ def reporting_ad_and_checking_number_of_reports(person, ad_id):
     db.session.add(report_the_ad)
     db.session.commit()
     if ReportAd.query.filter(ReportAd.ad_id == ad_id).count() >= app.config['COUNT_OF_REPORTS']:
-        advertisement = Advertisement.query.filter_by(id=ad_id).first()
-        advertisement.is_disabled = True
-        db.session.add(advertisement)
+        filtering_ad_by_id(ad_id).is_disabled = True
+        db.session.add(filtering_ad_by_id(ad_id))
         db.session.commit()
     return {"data": {"message": "ad reported"}}, 200
 
