@@ -88,13 +88,14 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error')
-        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and 1 special character and maximum length is 20 and minimum length is 8')
+        self.assertTrue(b'current password should contain least 1 uppercase, 1 lowercase, 1 number, and '
+                        b'1 special character and maximum length is 20 and minimum length is 8')
 
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')
     def test_signup_error_provide_valid_username(self, mock_saving_user_to_db, mock_checking_username_exist,
-                                          mock_checking_mail_exist):
+                                                 mock_checking_mail_exist):
         signup_obj = {
             "email_id": "user@gmail.com",
             "username": "test",
@@ -107,6 +108,7 @@ class ApiTest1(unittest.TestCase):
         self.assertEqual(response.content_type, "application/json")
         self.assertTrue(b'error')
         self.assertTrue(b'provide valid username')
+
     @patch('user.api.checking_mail_exist')
     @patch('user.api.checking_username_exist')
     @patch('user.api.saving_user_to_db')

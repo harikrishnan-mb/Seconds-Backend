@@ -60,14 +60,14 @@ class Advertisement(db.Model):
     advertising_id = db.Column(db.String(100), unique=True)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     is_disabled = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, default=datetime.now())
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
 
     # Relationship
     report_ads = db.relationship('ReportAd', backref='advertisement')
     favourite_ads = db.relationship('FavouriteAd', backref='advertisement')
     ad_images = db.relationship('AdImage', backref='advertisement')
-    # messages = db.relationship('Message', backref='advertisement')
+    chat_room = db.relationship('Chatroom', backref='advertisement')
 
     def __init__(self, title, status, seller_type, description, price, is_negotiable, is_featured, location, latitude,
                  longitude, geo, seller_name, phone, email,is_deleted, advertising_id, user_id, category_id, advertising_plan_id):
@@ -95,14 +95,13 @@ class Advertisement(db.Model):
         return f"Ad with {self.title} created"
 
 
-
 class AdImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     display_order = db.Column(db.Integer, nullable=False)
     file = db.Column(db.Text, nullable=False)
     is_cover_image = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, default=datetime.now())
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
 
     def __init__(self, display_order, file, is_cover_image, ad_id):
@@ -117,8 +116,8 @@ class AdImage(db.Model):
 
 class ReportAd(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, default=datetime.now())
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
     user_id = db.Column(db.BigInteger, db.ForeignKey('user.id'))
     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
 
@@ -132,8 +131,8 @@ class ReportAd(db.Model):
 
 class FavouriteAd(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, default=datetime.now())
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
 
@@ -144,20 +143,65 @@ class FavouriteAd(db.Model):
     def __str__(self):
         return f"Ad  with {self.id} as is add to favourites"
 
-#
-# class Message(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-#     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-#     ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
-#     content = db.Column(db.Text)
-#     created_at = db.Column(db.DateTime, default=datetime.now())
-#
-#     def __init__(self, sender_id, receiver_id, ad_id, content):
-#         self.sender_id = sender_id
-#         self.receiver_id = receiver_id
-#         self.content = content
-#         self.ad_id = ad_id
-#
-#     def __str__(self):
-#         return f"Message with {self.id} id is send"
+
+class Chatroom(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_a = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_b = db.Column(db.Integer, db.ForeignKey('user.id'))
+    ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
+    chatroom = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
+    user_a_1 = db.relationship("User", foreign_keys=[user_a])
+    user_b_1 = db.relationship("User", foreign_keys=[user_b])
+
+    def __init__(self, chatroom, user_a, user_b, ad_id):
+        self.chatroom = chatroom
+        self.user_a = user_a
+        self.user_b = user_b
+        self.ad_id = ad_id
+
+    def __str__(self):
+        return f"Chatroom with {self.id} id is created"
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    chatroom_id = db.Column(db.Integer, db.ForeignKey('chatroom.id'))
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    content = db.Column(db.Text)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    receiver = db.relationship("User", foreign_keys=[receiver_id])
+    chatroom = db.relationship("Chatroom", foreign_keys=[chatroom_id])
+
+    def __init__(self, chatroom_id, sender_id, ad_id, content):
+        self.chatroom_id = chatroom_id
+        self.sender_id = sender_id
+        self.content = content
+
+    def __str__(self):
+        return f"Message with {self.id} id is send"
+
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    content = db.Column(db.String(500))
+    ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'))
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    receiver = db.relationship("User", foreign_keys=[receiver_id])
+    ad = db.relationship("Advertisement", foreign_keys=[ad_id])
+
+    def __init__(self, receiver_id, content, ad_id):
+        self.content = content
+        self.receiver_id = receiver_id
+        self.ad_id = ad_id
+
+    def __str__(self):
+        return f"created Notification"
+

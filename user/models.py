@@ -10,14 +10,15 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     hashed_password = db.Column(db.Text, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow())
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow())
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
 
     # Relationship
     user_profiles = db.relationship('UserProfile', backref='user', uselist=False)
     report_ads = db.relationship('ReportAd', backref='user')
     favourite_ads = db.relationship('FavouriteAd', backref='user')
     # sender = db.relationship('Message', backref='user')
+    # notification = db.relationship('Notification', backref='user')
     # receiver = db.relationship('Message', backref='user')
 
     def __init__(self, username, email, hashed_password, is_admin):

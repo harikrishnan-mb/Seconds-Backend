@@ -12,12 +12,13 @@ from s3config import s3
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from bcrypt import checkpw
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity,jwt_required,get_jwt,verify_jwt_in_request
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required,get_jwt, verify_jwt_in_request
 from flask_jwt_extended import JWTManager
 load_dotenv
 user = Blueprint('user', __name__)
 app = get_app()
 jwt = JWTManager(app)
+
 
 @user.route('/signup', methods=['POST'])
 def signup():
@@ -27,17 +28,17 @@ def signup():
         username = data['username']
         password = data['password']
         if not email_id:
-            return {"data" :{"error": ErrorCodes.email_cannot_be_empty.value["msg"], "error_id": ErrorCodes.email_cannot_be_empty.value["code"]}}, 400
+            return {"data" : {"error": ErrorCodes.email_cannot_be_empty.value["msg"], "error_id": ErrorCodes.email_cannot_be_empty.value["code"]}}, 400
         if not username:
-            return {"data" :{"error": ErrorCodes.username_cannot_be_empty.value["msg"], "error_id": ErrorCodes.username_cannot_be_empty.value["code"]}}, 400
+            return {"data" : {"error": ErrorCodes.username_cannot_be_empty.value["msg"], "error_id": ErrorCodes.username_cannot_be_empty.value["code"]}}, 400
         if not password:
-            return {"data":{"error": ErrorCodes.password_cannot_be_empty.value["msg"], "error_id": ErrorCodes.password_cannot_be_empty.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.password_cannot_be_empty.value["msg"], "error_id": ErrorCodes.password_cannot_be_empty.value["code"]}}, 400
         if not check_email(email_id):
-            return {"data" :{"error": ErrorCodes.provide_a_valid_email.value["msg"], "error_id": ErrorCodes.provide_a_valid_email.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.provide_a_valid_email.value["msg"], "error_id": ErrorCodes.provide_a_valid_email.value["code"]}}, 400
         if not check_username(username):
-            return {"data" :{"error": ErrorCodes.provide_a_valid_username.value["msg"], "error_id": ErrorCodes.provide_a_valid_username.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.provide_a_valid_username.value["msg"], "error_id": ErrorCodes.provide_a_valid_username.value["code"]}}, 400
         if not password_check(password):
-            return {"data" :{"error": ErrorCodes.password_format_not_matching.value["msg"] , "error_id": ErrorCodes.password_format_not_matching.value["code"]}}, 400
+            return {"data" :{"error": ErrorCodes.password_format_not_matching.value["msg"], "error_id": ErrorCodes.password_format_not_matching.value["code"]}}, 400
         if checking_username_exist(username) is not None:
             return {"data":{"error": ErrorCodes.username_already_exists.value["msg"], "error_id": ErrorCodes.username_already_exists.value["code"]}}, 409
         if checking_mail_exist(email_id) is not None:
@@ -45,10 +46,12 @@ def signup():
 
         return saving_user_to_db(username, email_id, password)
     except KeyError:
-        return {"data": {"error" : ErrorCodes.provide_all_signup_keys.value["msg"],"error_id": ErrorCodes.provide_all_signup_keys.value["code"]}}, 400
+        return {"data": {"error": ErrorCodes.provide_all_signup_keys.value["msg"], "error_id": ErrorCodes.provide_all_signup_keys.value["code"]}}, 400
+
 
 def checking_username_exist(username):
     return User.query.filter_by(username=username).first()
+
 
 def checking_mail_exist(email_id):
     return User.query.filter_by(email=email_id).first()
@@ -84,6 +87,7 @@ def check_email(email):
     else:
         return False
 
+
 def password_check(passwd):
     val = True
     if len(passwd) < 8:
@@ -118,15 +122,19 @@ def login():
         password = data['password']
 
         if checking_username_exist(username) is None:
-            return {"data": {"error": ErrorCodes.username_does_not_exist.value["msg"], "error_id": ErrorCodes.username_does_not_exist.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.username_does_not_exist.value["msg"],
+                             "error_id": ErrorCodes.username_does_not_exist.value["code"]}}, 400
         if password == "":
-            return {"data": {"error": ErrorCodes.provide_password.value["msg"], "error_id": ErrorCodes.provide_password.value["code"]}}, 400
-        if checking_username_exist(username) and password_match(username,password):
+            return {"data": {"error": ErrorCodes.provide_password.value["msg"],
+                             "error_id": ErrorCodes.provide_password.value["code"]}}, 400
+        if checking_username_exist(username) and password_match(username, password):
             return checking_userpassword(username, password)
-        return {"data": {"error": ErrorCodes.incorrect_password.value["msg"], "error_id": ErrorCodes.incorrect_password.value["code"]}}, 409
+        return {"data": {"error": ErrorCodes.incorrect_password.value["msg"],
+                         "error_id": ErrorCodes.incorrect_password.value["code"]}}, 409
 
     except KeyError:
-        return {"data": {"error": ErrorCodes.provide_all_login_keys.value["msg"], "error_id": ErrorCodes.provide_all_login_keys.value["code"]}}, 400
+        return {"data": {"error": ErrorCodes.provide_all_login_keys.value["msg"],
+                         "error_id": ErrorCodes.provide_all_login_keys.value["code"]}}, 400
 
 
 def password_match(username,password):
@@ -138,8 +146,11 @@ def checking_userpassword(username, password):
     if user_in and checking_2password(user_in.hashed_password, password):
         access_token = create_access_token(identity=user_in.id, fresh=True)
         refresh_token = create_refresh_token(identity=user_in.id)
-        return {"data":
-                    {"message": "Login successful"},"tokens": {"access_token": access_token, "refresh_token": refresh_token}}, 200
+        current_user = username
+        return {"data": {"message": "Login successful"},"tokens": {"access_token": access_token,
+                                                                   "refresh_token": refresh_token},
+                "username": current_user}, 200
+
 
 @user.route('/refresh', methods=["GET"])
 @jwt_required(refresh=True)
@@ -147,6 +158,7 @@ def refresh():
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity)
     return {"data": {"access_token": access_token}}
+
 
 @user.route("/reset_password", methods=["PUT"])
 @jwt_required()
@@ -158,26 +170,34 @@ def reset_password():
         new_password = data['new_password']
 
         if not current_password:
-            return {'data':{'error': ErrorCodes.provide_current_password.value['msg'], "error_id": ErrorCodes.provide_current_password.value['code']}}, 400
+            return {'data':{'error': ErrorCodes.provide_current_password.value['msg'],
+                            "error_id": ErrorCodes.provide_current_password.value['code']}}, 400
         if not new_password:
-            return {'data':{'error': ErrorCodes.provide_new_password.value['msg'], "error_id": ErrorCodes.provide_new_password.value['code']}}, 400
+            return {'data':{'error': ErrorCodes.provide_new_password.value['msg'],
+                            "error_id": ErrorCodes.provide_new_password.value['code']}}, 400
         if not matching_password(user_id, current_password):
-            return {"data": {"error" : ErrorCodes.incorrect_password.value['msg'], "error_id": ErrorCodes.incorrect_password.value['code']}}, 400
+            return {"data": {"error" : ErrorCodes.incorrect_password.value['msg'],
+                             "error_id": ErrorCodes.incorrect_password.value['code']}}, 400
         if not password_check(new_password):
-            return {"data": {"error": ErrorCodes.password_format_not_matching.value["msg"], 'error_id': ErrorCodes.password_format_not_matching.value["code"]}}, 400
-        if current_password==new_password:
-            return {"data": {"error": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["msg"], "error_id": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.password_format_not_matching.value["msg"],
+                             'error_id': ErrorCodes.password_format_not_matching.value["code"]}}, 400
+        if current_password == new_password:
+            return {"data": {"error": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["msg"],
+                             "error_id": ErrorCodes.new_password_should_not_be_same_as_previous_password.value["code"]}}, 400
 
         return saving_new_password(user_id, new_password)
     except KeyError:
-        return {"data": {"error": ErrorCodes.key_not_found.value["msg"], "error_id": ErrorCodes.key_not_found.value["code"]}}, 400
+        return {"data": {"error": ErrorCodes.key_not_found.value["msg"],
+                         "error_id": ErrorCodes.key_not_found.value["code"]}}, 400
+
 
 def filter_user(user_id):
     return User.query.filter_by(id=user_id).first()
 
 
-def matching_password(user_id,current_password):
+def matching_password(user_id, current_password):
     return checking_2password(filter_user(user_id).hashed_password, current_password)
+
 
 def saving_new_password(user_id, new_password):
     filter_user(user_id).hashed_password = hashing_password(new_password)
@@ -185,11 +205,14 @@ def saving_new_password(user_id, new_password):
     db.session.commit()
     return {"data": {"message": "password changed successfully"}}, 200
 
+
 def check_phone(phone):
     phone_num = "[6-9][0-9]{9}"
     return re.fullmatch(phone_num, phone)
 
+
 jwt_redis_blocklist = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+
 
 @jwt.token_in_blocklist_loader
 def check_if_token_is_revoked(jwt_header, jwt_payload: dict):
@@ -197,15 +220,18 @@ def check_if_token_is_revoked(jwt_header, jwt_payload: dict):
     token_in_redis = jwt_redis_blocklist.get(jti)
     return token_in_redis is not None
 
+
 @user.route("/logout", methods=["DELETE"])
 @jwt_required()
 def logout():
     jti = get_jwt()["jti"]
     jwt_redis_blocklist.set(jti, "", ex=app.config["JWT_ACCESS_TOKEN_EXPIRES"])
-    return {"data":{"message":"Access token revoked"}}, 200
+    return {"data": {"message": "Access token revoked"}}, 200
+
 
 def allowed_profile_image_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png','jpg','jpeg'}
+
 
 @user.route('/update_profile', methods=['PUT'])
 @jwt_required()
@@ -226,7 +252,8 @@ def update_profile():
         return {'data': {'error': 'provide valid email_id'}}, 400
     if checking_new_and_old_mail_not_same(user_id,email_id):
         if checking_mail_exist(email_id):
-            return {"data": {"error": ErrorCodes.email_already_exists.value["msg"], "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
+            return {"data": {"error": ErrorCodes.email_already_exists.value["msg"],
+                             "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
         else:
             filter_user(user_id).email = email_id
     if not phone:
@@ -241,9 +268,9 @@ def update_profile():
         return {'data': {'error': 'image should be in png, jpg or jpeg format'}}, 400
     if photo and allowed_profile_image_file(photo.filename):
         filename = str(user_id)+secure_filename(photo.filename)
-        if os.getenv('ENV')=="DEVELOPMENT":
+        if os.getenv('ENV') == "DEVELOPMENT":
             photo.save(os.path.join(app.config['UPLOADED_PROFILE_DEST'], filename))
-        if os.getenv('ENV')=="PRODUCTION":
+        if os.getenv('ENV') == "PRODUCTION":
             s3.upload_fileobj(
                 photo,
                 app.config['S3_BUCKET'],
@@ -256,8 +283,10 @@ def update_profile():
         photo_url = 'static/profile/' + filename
     return saving_updated_profile(user_id, photo_url, name, phone, address)
 
+
 def checking_new_and_old_mail_not_same(user_id,email_id):
     return filter_user(user_id).email != email_id
+
 
 def saving_updated_profile(user_id, photo_url, name, phone, address):
     user_profile = UserProfile.query.filter_by(user_id=user_id).first()
@@ -270,17 +299,24 @@ def saving_updated_profile(user_id, photo_url, name, phone, address):
     db.session.commit()
     return {'data': {'message': 'profile updated successfully'}}, 200
 
+
 @user.route('/profile', methods=['GET'])
 @jwt_required()
 def view_profile():
     user_id=get_jwt_identity()
     return displaying_user_profile(user_id)
+
+
 def displaying_user_profile(user_id):
-    user_profile=UserProfile.query.filter_by(user_id=user_id).first()
-    if os.getenv('ENV')=='PRODUCTION':
-        return {"data":{"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}, 200
+    user_profile = UserProfile.query.filter_by(user_id=user_id).first()
+    if os.getenv('ENV') == 'PRODUCTION':
+        return {"data": {"message": [{"name": user_profile.name, "photo": app.config['S3_LOCATION']+user_profile.photo,
+                                      "email_id": filter_user(user_id).email, "phone": user_profile.phone,
+                                      "address": user_profile.address}]}}, 200
     if os.getenv('ENV') == 'DEVELOPMENT':
-        return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo, "email_id": filter_user(user_id).email, "phone": user_profile.phone, "address": user_profile.address}]}}, 200
+        return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo,
+                                      "email_id": filter_user(user_id).email, "phone": user_profile.phone,
+                                      "address": user_profile.address}]}}, 200
 
 
 
