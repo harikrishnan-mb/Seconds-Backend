@@ -68,6 +68,7 @@ class Advertisement(db.Model):
     favourite_ads = db.relationship('FavouriteAd', backref='advertisement')
     ad_images = db.relationship('AdImage', backref='advertisement')
     chat_room = db.relationship('Chatroom', backref='advertisement')
+    # message = db.relationship('Message', backref='advertisement')
 
     def __init__(self, title, status, seller_type, description, price, is_negotiable, is_featured, location, latitude,
                  longitude, geo, seller_name, phone, email,is_deleted, advertising_id, user_id, category_id, advertising_plan_id):
@@ -155,6 +156,9 @@ class Chatroom(db.Model):
     user_a_1 = db.relationship("User", foreign_keys=[user_a])
     user_b_1 = db.relationship("User", foreign_keys=[user_b])
 
+    # Relationship
+    # messages = db.relationship("Message", backref='chatroom')
+
     def __init__(self, chatroom, user_a, user_b, ad_id):
         self.chatroom = chatroom
         self.user_a = user_a
@@ -178,10 +182,12 @@ class Message(db.Model):
     receiver = db.relationship("User", foreign_keys=[receiver_id])
     chatroom = db.relationship("Chatroom", foreign_keys=[chatroom_id])
 
-    def __init__(self, chatroom_id, sender_id, ad_id, content):
+    def __init__(self, chatroom_id, sender_id, content, receiver_id, is_read):
         self.chatroom_id = chatroom_id
         self.sender_id = sender_id
+        self.receiver_id = receiver_id
         self.content = content
+        self.is_read = is_read
 
     def __str__(self):
         return f"Message with {self.id} id is send"

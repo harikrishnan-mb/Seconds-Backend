@@ -23,7 +23,6 @@ from dotenv import load_dotenv
 load_dotenv()
 app = get_app()
 socketio = SocketIO(app, cors_allowed_origins="*")
-#  async_mode="asyncio",
 ad = Blueprint('ad', __name__)
 
 
@@ -774,6 +773,8 @@ def removing_ad_from_favourite(person, ad_id):
 def saving_ad_to_favourite(favourite, ad_id, person):
     username = User.query.filter(User.id == person).first().username
     ads = Advertisement.query.filter(Advertisement.id == ad_id).first()
+    ad_created_person_user_id = ads.user_id
+    ad_created_person_username = User.query.filter(User.id == ad_created_person_user_id).username
     title = ads.title
     user_id = ads.user_id
     if person != user_id:
@@ -783,8 +784,8 @@ def saving_ad_to_favourite(favourite, ad_id, person):
     db.session.add(favourite)
     db.session.commit()
     # notif = Notification.query.filter(Notification.receiver_id == ads.user_id, Notification.is_read == False).count()
-    # user_room = 'user_{}'.format(person)
-    # emit('response',
+    # user_room = ad_created_person_username
+    # emit('notification_response',
     #      {'message': 'New notifications',
     #       'count': notif,
     #       'notification': content},
@@ -908,13 +909,21 @@ def get_notification():
     return {"data": {'message': notification_list}}
 
 
-# @socketio.on('connect', namespace='/notification')
-# @jwt_required()
-# def connect_handler():
-#     person = get_jwt_identity()
-#     user_room = 'user_{}'.format(person)
-#     join_room(user_room)
-#     emit('response', {'message': 'user connected'})
+@socketio.on('connect', namespace='/notification')
+def connect_handler(data):
+    username = data.get('username')
+    user_room = username
+    join_room(user_room)
+    emit('response', {'message': f'{username} connected'}, room=username)
+
+
+@socketio.on('connect', namespace='/notification')
+@jwt_required()
+def connect_handler():
+    person = get_jwt_identity()
+    user_room = 'user_{}'.format(person)
+    join_room(user_room)
+    emit('response', {'message': 'user connected'})
 
 
 @ad.route('/create_room', methods=['GET'])
@@ -956,8 +965,8 @@ def list_all_chats():
         unread_message = Message.query.filter(Message.chatroom_id == chatroom.id, Message.receiver_id == person,
                                               Message.is_read == False).count()
         if not extracting_last_message:
-            last_message = None
             time_last_message = None
+            last_message = None
             username_who_send_last_message = None
         else:
             last_message = extracting_last_message.content
@@ -967,15 +976,15 @@ def list_all_chats():
                 "chatroom_name": chatroom.chatroom,
                 "ad_image_url": ad_image_url, "room_id": chatroom.id,
                 "unread_message": unread_message,
-                "last_message": last_message,
+                "last_message": last_message, "ad_title": ad_title,
                 "username_1": username_1, "username_2": username_2}
         chat_list.append(chat)
     return {"data": {"message": chat_list}}
 
 
-@ad.route('/chat_messages', methods=['GET'])
+@ad.route('/chat_messages/<int:page>', methods=['GET'])
 @jwt_required()
-def list_a_chat():
+def list_a_chat(page):
     person = get_jwt_identity()
     if "room_id" not in request.args:
         return {"data": {"error": "provide the room_id"}}, 400
@@ -988,63 +997,114 @@ def list_a_chat():
         db.session.commit()
 
     chatroom = Chatroom.query.filter(Chatroom.id == int(room_id)).first()
-    messages = Message.query.filter(Message.chatroom_id == int(room_id)).order_by(Message.created_at.asc()).all()
+    messages = Message.query.filter(Message.chatroom_id == int(room_id)).order_by(Message.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
     other_user_id = chatroom.user_a if chatroom.user_a != person else chatroom.user_b
-    user_image = UserProfile.query.filter(UserProfile.user_id == other_user_id).first().photo
+    user_image = os.getenv('HOME_ROUTE')+UserProfile.query.filter(UserProfile.user_id == other_user_id).first().photo
     other_username = User.query.filter(User.id == other_user_id).first().username
     ad_id = chatroom.ad_id
     ads = Advertisement.query.filter(Advertisement.id == ad_id).first()
     ad_title = ads.title
     ad_price = ads.price
-    ad_image = AdImage.query.filter(AdImage.id == ad_id, AdImage.is_cover_image == True).first().file
+    ad_image = os.getenv('HOME_ROUTE')+AdImage.query.filter(AdImage.ad_id == ad_id, AdImage.is_cover_image == True).first().file
     message_list = []
     for message in messages:
         each_message = message.content
         sender_name = User.query.filter(User.id == message.sender_id).first().username
         each_message_dict = {"sender_name": sender_name, "message": each_message}
         message_list.append(each_message_dict)
-    return {"data": {"message": message_list}, "other_user": other_username, "user_image": user_image,
+    return {"data": {"message": message_list}, "ad_id": ad_id, "other_user": other_username, "user_image": user_image,
             "ads_image": ad_image, "ad_title": ad_title, "ad_price": ad_price}
 
 
 @socketio.on('joined', namespace='/chat')
-def joined(message):
-    room = request.args.get("room_id")
-    join_room(int(room))
+def joined(data):
+    room = data.get("room_id")
+    print(room)
+    join_room(room)
     emit('status', {'message': f'User joined the room {room}'}, room=room)
 
 
 @socketio.on('left', namespace='/chat')
-def left(message):
-    room = request.args.get('room_id')
-    leave_room(int(room))
-    emit('status', {'message': f'User left the room {room}'})
+def left(data):
+    room = data.get('room_id')
+    leave_room(room)
+    emit('status', {'message': f'User left the room {room}'}, room=room)
 
 
 @socketio.on('text', namespace='/chat')
 def handle_send_message(data):
-    person = get_jwt_identity()
+    print(data)
     chatroom_id = data.get('chatroom_id')
     content = data.get('content')
+    username = data.get('username')
+    sender_id = User.query.filter(User.username == username).first().id
     chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
-    chatroom.updated_at = datetime.now
-    db.session.add(chatroom)
+    # chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+    chatroom.updated_at = datetime.now()
     db.session.commit()
-    other_user = chatroom.user_a if chatroom.user_a != person else chatroom.user_b
-    message = Message(chatroom_id=chatroom.id, sender_id=person, receiver_id=other_user, content=content)
-    db.session.add(message)
+    other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+    messages = Message(chatroom_id=int(chatroom_id), sender_id=sender_id, receiver_id=other_user, content=content,
+                       is_read=False)
+    db.session.add(messages)
     db.session.commit()
-    sender_name = User.query.filter(User.id == person).first().username
-    receiver_name = User.query.filter(User.id == other_user).first().username
-    emit('receive_message', {"receiver_name": receiver_name, 'chatroom_id': chatroom.id, "sender_name": sender_name,
-                             'sender_id': person, 'content': content}, room=chatroom.chatroom)
+    getting_unread_messages = Message.query.filter(Message.chatroom_id == chatroom_id, Message.receiver_id == sender_id, Message.is_read == False).all()
+    if getting_unread_messages:
+        for message_a in getting_unread_messages:
+            message_a.is_read = True
+            db.session.add(message_a)
+            db.session.commit()
+    # other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+    receivers_name = User.query.filter(User.id == other_user).first().username
+    emit('receive_message', {"receiver_name": receivers_name, 'chatroom_id': chatroom_id, "sender_name": username,
+                             'sender_id': sender_id, 'content': content}, room=chatroom_id)
 
 
+@socketio.on('typing', namespace='/chat')
+def handle_send_message(data):
+    print(data)
+    chatroom_id = data.get('chatroom_id')
+    username = data.get('username')
+    typing = data.get('typing')
+    chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+    sender_id = User.query.filter(User.username == username).first().id
+    other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+    receivers_name = User.query.filter(User.id == other_user).first().username
+    emit('typing_status', {"receiver_name": receivers_name, 'chatroom_id': chatroom_id, "sender_name": username,
+                           'sender_id': sender_id, 'typing': typing}, room=chatroom_id)
 
 
+# @ad.route('/send_message', methods=['POST'])
+# @jwt_required()
+# def post_chat():
+#     person = get_jwt_identity()
+#     content = request.get_json()["content"]
+#     chatroom_id = request.get_json()["room_id"]
+#     chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+#     chatroom.updated_at = datetime.now()
+#     db.session.commit()
+#     other_user = chatroom.user_a if chatroom.user_a != person else chatroom.user_b
+#     messages = Message(chatroom_id=int(chatroom_id), sender_id=person, receiver_id=other_user, content=content, is_read=False)
+#     db.session.add(messages)
+#     db.session.commit()
+#     return {"data": {"message": "Message saved to the database"}}
 
 
-
+@ad.route('/popular_locations', methods=['GET'])
+def popular_locations():
+    most_popular_locations = db.session.query(Advertisement.location, func.count(Advertisement.location))\
+                   .filter(Advertisement.is_deleted==False).filter(Advertisement.is_disabled==False).group_by(Advertisement.location).order_by(func.count(Advertisement.location).desc()).limit(4).all()
+    popular_location_list = []
+    for popular_location in most_popular_locations:
+        try:
+            popular_cities = popular_location.location.split(', ')
+            if len(popular_cities) == 2 or len(popular_cities) == 3:
+                city = popular_cities[0]
+            else:
+                city = popular_cities[-3]
+        except:
+            city = popular_location.location
+        popular_location_list.append(city)
+    return {"data": {"message": popular_location_list}}
 
 
 

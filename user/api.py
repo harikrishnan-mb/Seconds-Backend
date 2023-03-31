@@ -2,6 +2,7 @@ from flask import request, Blueprint
 from messages import ErrorCodes
 from createapp import get_app
 import re
+from flask_mail import Mail, Message
 import os
 from user.models import User, UserProfile
 from user.models import db
@@ -17,6 +18,7 @@ from flask_jwt_extended import JWTManager
 load_dotenv
 user = Blueprint('user', __name__)
 app = get_app()
+mail = Mail(app)
 jwt = JWTManager(app)
 
 
@@ -28,9 +30,9 @@ def signup():
         username = data['username']
         password = data['password']
         if not email_id:
-            return {"data" : {"error": ErrorCodes.email_cannot_be_empty.value["msg"], "error_id": ErrorCodes.email_cannot_be_empty.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.email_cannot_be_empty.value["msg"], "error_id": ErrorCodes.email_cannot_be_empty.value["code"]}}, 400
         if not username:
-            return {"data" : {"error": ErrorCodes.username_cannot_be_empty.value["msg"], "error_id": ErrorCodes.username_cannot_be_empty.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.username_cannot_be_empty.value["msg"], "error_id": ErrorCodes.username_cannot_be_empty.value["code"]}}, 400
         if not password:
             return {"data": {"error": ErrorCodes.password_cannot_be_empty.value["msg"], "error_id": ErrorCodes.password_cannot_be_empty.value["code"]}}, 400
         if not check_email(email_id):
@@ -38,15 +40,21 @@ def signup():
         if not check_username(username):
             return {"data": {"error": ErrorCodes.provide_a_valid_username.value["msg"], "error_id": ErrorCodes.provide_a_valid_username.value["code"]}}, 400
         if not password_check(password):
-            return {"data" :{"error": ErrorCodes.password_format_not_matching.value["msg"], "error_id": ErrorCodes.password_format_not_matching.value["code"]}}, 400
+            return {"data": {"error": ErrorCodes.password_format_not_matching.value["msg"], "error_id": ErrorCodes.password_format_not_matching.value["code"]}}, 400
         if checking_username_exist(username) is not None:
-            return {"data":{"error": ErrorCodes.username_already_exists.value["msg"], "error_id": ErrorCodes.username_already_exists.value["code"]}}, 409
+            return {"data": {"error": ErrorCodes.username_already_exists.value["msg"], "error_id": ErrorCodes.username_already_exists.value["code"]}}, 409
         if checking_mail_exist(email_id) is not None:
-            return {"data":{"error": ErrorCodes.email_already_exists.value["msg"], "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
+            return {"data": {"error": ErrorCodes.email_already_exists.value["msg"], "error_id": ErrorCodes.email_already_exists.value["code"]}}, 409
 
         return saving_user_to_db(username, email_id, password)
     except KeyError:
         return {"data": {"error": ErrorCodes.provide_all_signup_keys.value["msg"], "error_id": ErrorCodes.provide_all_signup_keys.value["code"]}}, 400
+
+
+def send_message(users):
+    msg = Message('OTP Validation', sender='seconds.clone@gmail.com', recipients=[users.email])
+    msg.body = 'Welcome'
+    mail.send(msg)
 
 
 def checking_username_exist(username):
@@ -64,6 +72,7 @@ def saving_user_to_db(username, email_id, password):
     profile_1 = UserProfile(None, None, None, photo='static/profile/profile.jpg', user_id=user_1.id)
     db.session.add(profile_1)
     db.session.commit()
+    send_message(user_1)
     return {"data": {"message": "user created"}}, 200
 
 
@@ -315,6 +324,7 @@ def displaying_user_profile(user_id):
                                       "address": user_profile.address}]}}, 200
     if os.getenv('ENV') == 'DEVELOPMENT':
         return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo,
+                                      "username": filter_user(user_id).username,
                                       "email_id": filter_user(user_id).email, "phone": user_profile.phone,
                                       "address": user_profile.address}]}}, 200
 

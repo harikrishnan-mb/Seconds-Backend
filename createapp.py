@@ -20,7 +20,7 @@ def get_app():
         app.config['UPLOADED_PROFILE_DEST'] = 'static/profile'
         app.config["JWT_SECRET_KEY"] = os.getenv("JWT")
         app.config['UPLOAD_AD_PICTURE'] = 'static/images_ad'
-        app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=60)
+        app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(weeks=0.5)
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
         app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE')
         app.config['S3_BUCKET'] = os.getenv('S3_BUCKET_NAME')
@@ -28,4 +28,9 @@ def get_app():
         app.config['S3_SECRET'] = os.getenv("AWS_ACCESS_SECRET")
         app.config['S3_LOCATION'] = os.getenv('S3_LOCATION')
         app.config['COUNT_OF_REPORTS'] = 2
+        app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+        app.config['MAIL_PORT'] = 587
+        app.config['MAIL_USE_TLS'] = True
+        app.config['MAIL_USERNAME'] = 'seconds.clone@gmail.com'
+        app.config['MAIL_PASSWORD'] = 'vzcajvmyaabvmywo'
     return app

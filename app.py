@@ -21,4 +21,4 @@ with app.app_context():
 CORS(app)
 
 if __name__ == '__main__':
-    socketio.run(app, host=os.getenv("HOST"), port=int(os.getenv("PORT")))
+    socketio.run(app, host=os.getenv("HOST"), port=int(os.getenv("PORT")), allow_unsafe_werkzeug=True)
