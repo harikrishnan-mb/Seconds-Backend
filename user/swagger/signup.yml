@@ -1,0 +1,95 @@
+swagger: '2.0'
+info:
+  title: Example API
+  description: An example API
+  version: '1.0'
+host: example.com
+basePath: /
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /user/signup:
+    post:
+      summary: Create a new user account
+      descriptionswagger: '2.0'
+info:
+  title: Example API
+  description: An example API
+  version: '1.0'
+host: example.com
+basePath: /
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /user/signup:
+    post:
+      summary: Create a new user account
+      description: Creates a new user account with the provided credentials
+      parameters: []
+      requestBody:
+        description: The user object containing username, email_id, and password
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email_id:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - email_id
+                - password
+      responses:
+        '200':
+          description: User created successfully
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid request parameters
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '409':
+          description: User already exists
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Server error
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string

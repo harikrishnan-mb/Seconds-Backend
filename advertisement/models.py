@@ -182,12 +182,21 @@ class Message(db.Model):
     receiver = db.relationship("User", foreign_keys=[receiver_id])
     chatroom = db.relationship("Chatroom", foreign_keys=[chatroom_id])
 
-    def __init__(self, chatroom_id, sender_id, content, receiver_id, is_read):
-        self.chatroom_id = chatroom_id
-        self.sender_id = sender_id
-        self.receiver_id = receiver_id
+
+class MessageReactions(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    reacted_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'))
+    content = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
+    sender = db.relationship("User", foreign_keys=[reacted_by])
+    message = db.relationship("Message", foreign_keys=[message_id])
+
+    def __init__(self, reacted_by, content, message_id):
+        self.reacted_by = reacted_by
         self.content = content
-        self.is_read = is_read
+        self.message_id = message_id
 
     def __str__(self):
         return f"Message with {self.id} id is send"

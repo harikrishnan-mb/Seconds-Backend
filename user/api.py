@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 from bcrypt import checkpw
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required,get_jwt, verify_jwt_in_request
 from flask_jwt_extended import JWTManager
+
+from flasgger import Swagger, swag_from
 load_dotenv
 user = Blueprint('user', __name__)
 app = get_app()
@@ -22,6 +24,7 @@ mail = Mail(app)
 jwt = JWTManager(app)
 
 
+@swag_from('swagger/signup.yml')
 @user.route('/signup', methods=['POST'])
 def signup():
     try:

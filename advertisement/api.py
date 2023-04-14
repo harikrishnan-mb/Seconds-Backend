@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from s3config import s3
 from advertisement.models import db, Category, Advertisement, AdImage, AdPlan, FavouriteAd, ReportAd, Message,\
-    Notification, Chatroom
+    Notification, Chatroom,MessageReactions
 from user.api import check_email, check_phone
 from user.models import User, UserProfile
 from user.api import get_jwt_identity, jwt_required, verify_jwt_in_request
@@ -766,7 +766,7 @@ def removing_ad_from_favourite(person, ad_id):
     if person != owner_id:
         notification = Notification.query.filter(Notification.receiver_id == owner_id, Notification.ad_id == ad_id).first()
         db.session.delete(notification)
-    db.session.commit()
+        db.session.commit()
     return {"data": {"message": "ad removed from favourites"}}, 200
 
 
@@ -774,11 +774,11 @@ def saving_ad_to_favourite(favourite, ad_id, person):
     username = User.query.filter(User.id == person).first().username
     ads = Advertisement.query.filter(Advertisement.id == ad_id).first()
     ad_created_person_user_id = ads.user_id
-    ad_created_person_username = User.query.filter(User.id == ad_created_person_user_id).username
+    ad_created_person_username = User.query.filter(User.id == ad_created_person_user_id).first().username
     title = ads.title
     user_id = ads.user_id
     if person != user_id:
-        content = f'{username} has favorited your ad titled as {title}'
+        content = f'{username} has favorited your advertisement'
         notifications = Notification(receiver_id=user_id, content=content, ad_id=ad_id)
         db.session.add(notifications)
     db.session.add(favourite)
@@ -887,10 +887,10 @@ def reporting_ad_and_checking_number_of_reports(person, ad_id):
     report_the_ad = ReportAd(user_id=person, ad_id=ad_id)
     db.session.add(report_the_ad)
     db.session.commit()
-    if ReportAd.query.filter(ReportAd.ad_id == ad_id).count() >= app.config['COUNT_OF_REPORTS']:
-        filtering_ad_by_id(ad_id).is_disabled = True
-        db.session.add(filtering_ad_by_id(ad_id))
-        db.session.commit()
+    # if ReportAd.query.filter(ReportAd.ad_id == ad_id).count() >= app.config['COUNT_OF_REPORTS']:
+    #     filtering_ad_by_id(ad_id).is_disabled = True
+    #     db.session.add(filtering_ad_by_id(ad_id))
+    #     db.session.commit()
     return {"data": {"message": "ad reported"}}, 200
 
 
@@ -901,7 +901,9 @@ def get_notification():
     notifications = Notification.query.filter(Notification.receiver_id == person).order_by(Notification.created_at.desc()).all()
     notification_list = []
     for notification in notifications:
-        notification_dic = {"notify": notification.content, "created_time": notification.created_at, "is_read": notification.is_read}
+        user_photo = os.getenv('HOME_ROUTE')+UserProfile.query.filter(UserProfile.user_id == person).first().photo
+        image = os.getenv('HOME_ROUTE')+AdImage.query.filter(AdImage.is_cover_image == True, AdImage.ad_id == notification.ad_id).first().file
+        notification_dic = {"notify": notification.content, "created_time": notification.created_at, "is_read": notification.is_read, "ad_id": notification.ad_id, "image": image, "user_photo": user_photo}
         notification_list.append(notification_dic)
         notification.is_read = True
         db.session.add(notification)
@@ -909,21 +911,23 @@ def get_notification():
     return {"data": {'message': notification_list}}
 
 
-@socketio.on('connect', namespace='/notification')
-def connect_handler(data):
-    username = data.get('username')
-    user_room = username
-    join_room(user_room)
-    emit('response', {'message': f'{username} connected'}, room=username)
-
-
-@socketio.on('connect', namespace='/notification')
+@ad.route('/get_notification_count', methods=['GET'])
 @jwt_required()
-def connect_handler():
+def get_count_of_the_notification():
     person = get_jwt_identity()
-    user_room = 'user_{}'.format(person)
-    join_room(user_room)
-    emit('response', {'message': 'user connected'})
+    notifications = Notification.query.filter(Notification.receiver_id == person, Notification.is_read == False).count()
+    return {"data": {'message': notifications}}
+
+
+@socketio.on('join_room', namespace='/notification')
+def connect_handler(data):
+    print(data)
+    user_room = data.get('username')
+    if user_room:
+        join_room(str(user_room))
+        emit('response', {'message': 'user connected'})
+    else:
+        emit('error', {'message': 'message not found'})
 
 
 @ad.route('/create_room', methods=['GET'])
@@ -964,10 +968,9 @@ def list_all_chats():
         extracting_last_message = Message.query.filter(Message.chatroom_id == chatroom.id).order_by(Message.created_at.desc()).first()
         unread_message = Message.query.filter(Message.chatroom_id == chatroom.id, Message.receiver_id == person,
                                               Message.is_read == False).count()
+        other_username = username_2 if current_username != username_2 else username_1
         if not extracting_last_message:
-            time_last_message = None
-            last_message = None
-            username_who_send_last_message = None
+            continue
         else:
             last_message = extracting_last_message.content
             time_last_message = extracting_last_message.created_at
@@ -977,7 +980,8 @@ def list_all_chats():
                 "ad_image_url": ad_image_url, "room_id": chatroom.id,
                 "unread_message": unread_message,
                 "last_message": last_message, "ad_title": ad_title,
-                "username_1": username_1, "username_2": username_2}
+                "username_1": username_1, "username_2": username_2,
+                "other_username": other_username}
         chat_list.append(chat)
     return {"data": {"message": chat_list}}
 
@@ -997,7 +1001,7 @@ def list_a_chat(page):
         db.session.commit()
 
     chatroom = Chatroom.query.filter(Chatroom.id == int(room_id)).first()
-    messages = Message.query.filter(Message.chatroom_id == int(room_id)).order_by(Message.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
+    messages = Message.query.filter(Message.chatroom_id == int(room_id)).order_by(Message.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
     other_user_id = chatroom.user_a if chatroom.user_a != person else chatroom.user_b
     user_image = os.getenv('HOME_ROUTE')+UserProfile.query.filter(UserProfile.user_id == other_user_id).first().photo
     other_username = User.query.filter(User.id == other_user_id).first().username
@@ -1010,7 +1014,13 @@ def list_a_chat(page):
     for message in messages:
         each_message = message.content
         sender_name = User.query.filter(User.id == message.sender_id).first().username
-        each_message_dict = {"sender_name": sender_name, "message": each_message}
+        # reaction_list = []
+        reactions = MessageReactions.query.filter(MessageReactions.message_id == message.id).first()
+        # for reaction in reactions:
+        #     reaction_dict = {"content": reaction.content}
+        #     reaction_list.append(reaction_dict)
+
+        each_message_dict = {"message_id": message.id, "sender_name": sender_name, "message": each_message, "reaction_list": reactions.content if reactions else None}
         message_list.append(each_message_dict)
     return {"data": {"message": message_list}, "ad_id": ad_id, "other_user": other_username, "user_image": user_image,
             "ads_image": ad_image, "ad_title": ad_title, "ad_price": ad_price}
@@ -1018,6 +1028,7 @@ def list_a_chat(page):
 
 @socketio.on('joined', namespace='/chat')
 def joined(data):
+    print("joined")
     room = data.get("room_id")
     print(room)
     join_room(room)
@@ -1027,13 +1038,20 @@ def joined(data):
 @socketio.on('left', namespace='/chat')
 def left(data):
     room = data.get('room_id')
-    leave_room(room)
-    emit('status', {'message': f'User left the room {room}'}, room=room)
+    username = data.get('username')
+    print({"data": data})
+    sender_id = User.query.filter(User.username == username).first().id
+    all_unread_messages_in_chatroom = Message.query.filter(Message.chatroom_id == room, Message.is_read == False, Message.receiver_id == sender_id).all()
+    for message in all_unread_messages_in_chatroom:
+        message.is_read = True
+        db.session.add(message)
+        db.session.commit()
+    emit('status', {'message': f'User left the room'}, room=room)
 
 
 @socketio.on('text', namespace='/chat')
 def handle_send_message(data):
-    print(data)
+    print("message_send")
     chatroom_id = data.get('chatroom_id')
     content = data.get('content')
     username = data.get('username')
@@ -1041,7 +1059,6 @@ def handle_send_message(data):
     chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
     # chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
     chatroom.updated_at = datetime.now()
-    db.session.commit()
     other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
     messages = Message(chatroom_id=int(chatroom_id), sender_id=sender_id, receiver_id=other_user, content=content,
                        is_read=False)
@@ -1055,13 +1072,50 @@ def handle_send_message(data):
             db.session.commit()
     # other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
     receivers_name = User.query.filter(User.id == other_user).first().username
-    emit('receive_message', {"receiver_name": receivers_name, 'chatroom_id': chatroom_id, "sender_name": username,
+    # count_current_user = Message.query.filter(Message.receiver_id == sender_id, Message.is_read == False).count()
+    # count_other_user = Message.query.filter(Message.receiver_id == other_user, Message.is_read == False).count()
+    # # emit('notification_response', {'message': 'Chat', 'count': count_other_user, 'notification': "new_message"}
+    #      , room=username, namespace='/notification')
+    # emit('notification_response', {'message': 'Chat', 'count': count_current_user, 'notification': "new_message"}
+    #      , room=receivers_name, namespace='/notification')
+    emit('receive_message', {"receiver_name": receivers_name, 'chatroom_id': chatroom_id, "sender_name": username, "message_id": messages.id,
                              'sender_id': sender_id, 'content': content}, room=chatroom_id)
+    # emit('notification_response', {'message': 'Chat', 'count': count_other_user, 'notification': "new_message"}
+    #      , room=str(receivers_name), namespace='/notification')
 
+
+@socketio.on('reactions', namespace='/chat')
+def handle_message_reactions(data):
+    message_id = data.get('message_id')
+    chatroom_id = data.get('chatroom_id')
+    content = data.get('content')
+    username = data.get('username')
+    print(data)
+    sender_id = User.query.filter(User.username == username).first().id
+    chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+    # chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+    chatroom.updated_at = datetime.now()
+    other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+    getting_unread_messages = Message.query.filter(Message.chatroom_id == chatroom_id, Message.receiver_id == sender_id, Message.is_read == False).all()
+    if getting_unread_messages:
+        for message_a in getting_unread_messages:
+            message_a.is_read = True
+            db.session.add(message_a)
+            db.session.commit()
+    checking_reactions_already_exists = MessageReactions.query.filter(MessageReactions.message_id == message_id, MessageReactions.reacted_by == sender_id).first()
+    if checking_reactions_already_exists:
+        db.session.delete(checking_reactions_already_exists)
+        db.session.commit()
+
+    react_messages = MessageReactions(message_id=int(message_id), reacted_by=sender_id, content=content)
+    db.session.add(react_messages)
+    db.session.commit()
+    receivers_name = User.query.filter(User.id == other_user).first().username
+    emit('receive_reactions', {'chatroom_id': chatroom_id, "sender_name": username, "message_id": message_id, 'sender_id': sender_id, 'content': react_messages.content}, room=chatroom_id)
 
 @socketio.on('typing', namespace='/chat')
 def handle_send_message(data):
-    print(data)
+    print("typing")
     chatroom_id = data.get('chatroom_id')
     username = data.get('username')
     typing = data.get('typing')
@@ -1089,6 +1143,17 @@ def handle_send_message(data):
 #     return {"data": {"message": "Message saved to the database"}}
 
 
+@ad.route('/unread_chat_messages', methods=['GET'])
+@jwt_required()
+def unread_chat_message():
+    try:
+        person = get_jwt_identity()
+        unread_message = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == person, Message.is_read == False).group_by(Message.chatroom_id).count()
+    except:
+        unread_message = 0
+    return {"data": {"message": unread_message}}
+
+
 @ad.route('/popular_locations', methods=['GET'])
 def popular_locations():
     most_popular_locations = db.session.query(Advertisement.location, func.count(Advertisement.location))\
@@ -1107,10 +1172,118 @@ def popular_locations():
     return {"data": {"message": popular_location_list}}
 
 
+@socketio.on('chat', namespace='/notification')
+def connect_handler(data):
+    user = data.get('username')
+    chatroom_id = data.get('chatroom_id')
+    content = data.get('content')
+    print(data)
+    print({"chat": user})
+    if user is None:
+        emit('notification_response',{'message': 'message', 'count': "username is None", 'notification': "new_message"}, room=user)
+    else:
+        sender_id = User.query.filter(User.username == user).first().id
+        all_unread_messages_in_chatroom = Message.query.filter(Message.chatroom_id == chatroom_id, Message.is_read == False, Message.receiver_id == sender_id).all()
+        for message in all_unread_messages_in_chatroom:
+            message.is_read = True
+            db.session.add(message)
+            db.session.commit()
+        print({"username": user, "chat": True})
+        chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+        other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+        receivers_name = User.query.filter(User.id == other_user).first().username
+        # count_current_user = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == sender_id, Message.is_read == False).group_by(Message.chatroom_id).count()
+        # count_other_user = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == other_user, Message.is_read == False).group_by(Message.chatroom_id).count()
+        emit('notification_response', {'message': 'message', 'count': "count_current_user", 'notification': "new_message"}
+             , room=user)
+        emit('notification_response', {'message': 'message', 'count': "count_other_user", 'notification': "new_message"}
+             , room=receivers_name)
 
 
+# @socketio.on('read_message', namespace='/chat')
+# def handle_read_message(data):
+#     chatroom_id = data.get('chatroom_id')
+#     message_id = data.get('message_id')
+#     username = data.get('username')
+#     print(data)
+#     print("message_read")
+#     sender_id = User.query.filter(User.username == username).first().id
+#     print(sender_id)
+#     message = Message.query.filter(Message.id == message_id, Message.receiver_id == sender_id).first()
+#     chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+#     other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+#     receivers_name = User.query.filter(User.id == other_user).first().username
+#     if message:
+#         message.is_read = True
+#         db.session.add(message)
+#         db.session.commit()
+#         print("bdhbchdbcjd")
+#         chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+#         other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+#         receivers_name = User.query.filter(User.id == other_user).first().username
+#         emit('message_read', {'message_id': message_id, "read_by": receivers_name, "content": message.content, "is_read": True}, room=chatroom_id)
+#     else:
+#         message = Message.query.filter(Message.id == message_id).first()
+#         read_or_not = Message.is_read
+#         emit('message_read', {'message_id': message_id, "read_by": receivers_name, "content": None, "is_read": read_or_not}, room=chatroom_id)
 
 
+@ad.route('/trending_ad_locations', methods=['GET'])
+def trending_ad_locations():
+    most_popular_locations = db.session.query(Advertisement.location, func.count(Advertisement.location))\
+                   .filter(Advertisement.is_deleted == False, Advertisement.is_disabled == False, Advertisement.created_at >= datetime.now()-timedelta(weeks=4)).group_by(Advertisement.location).order_by(func.count(Advertisement.location).desc()).limit(4).all()
+    popular_location_list = []
+    for popular_location in most_popular_locations:
+        try:
+            popular_cities = popular_location.location.split(', ')
+            if len(popular_cities) == 2 or len(popular_cities) == 3:
+                city = popular_cities[0]
+            else:
+                city = popular_cities[-3]
+        except:
+            city = popular_location.location
+        popular_location_list.append(city)
+    return {"data": {"message": popular_location_list}}
+
+
+@ad.route('/view_reported_ad/<int:page>', methods=['GET'])
+@jwt_required()
+def viewing_reported_ad(page):
+    user_id = get_jwt_identity()
+    user = User.query.filter(User.id == user_id).first()
+    reported_list = []
+    filtering_reported_ad = db.session.query(ReportAd.ad_id, func.count(ReportAd.updated_at).label('counts_of_report'), func.max(ReportAd.updated_at)).group_by(ReportAd.ad_id).order_by(func.max(ReportAd.updated_at).desc()).all()
+    if user.is_admin==True:
+        ad_id_list = []
+        for each_row in filtering_reported_ad:
+            print(each_row)
+            if each_row and each_row.counts_of_report >= app.config['COUNT_OF_REPORTS']:
+                ad_id_list.append(each_row.ad_id)
+                print(ad_id_list)
+        advertisements = Advertisement.query.filter(Advertisement.is_disabled == False, Advertisement.id.in_(ad_id_list)).paginate(page=page, per_page=12, error_out=False)
+        number_of_ads = Advertisement.query.filter(Advertisement.is_disabled == False, Advertisement.id.in_(ad_id_list)).count()
+        for advertisement in advertisements:
+            is_liked = False
+            created_by_me = False
+            if "Authorization" in request.headers:
+                person = get_jwt_identity()
+                if FavouriteAd.query.filter_by(ad_id=advertisement.id, user_id=person).first():
+                    is_liked = True
+                if person == advertisement.user_id:
+                    created_by_me = True
+            ad_images = AdImage.query.filter_by(ad_id=advertisement.id, is_cover_image=True).first()
+            if os.getenv('ENV') == 'DEVELOPMENT':
+                images = os.getenv('HOME_ROUTE') + ad_images.file
+            if os.getenv('ENV') == 'PRODUCTION':
+                images = app.config['S3_LOCATION'] + ad_images.file
+            ad_filter = {"id": advertisement.id, "title": advertisement.title, "cover_image": images,
+                         "featured": advertisement.is_featured, "location": advertisement.location,
+                         "price": advertisement.price, "status": advertisement.status, "favourite": is_liked,
+                         "created_by_me": created_by_me}
+            reported_list.append(ad_filter)
+        return {"data": {"message": reported_list, "count": number_of_ads}}, 200
+    else:
+        return {"data": {"message": "only admin can access this route"}}
 
 
 
