@@ -14,6 +14,7 @@ from advertisement.mocked_db import get_every_categories, get_only_categories, a
     ads_plan, checking_user_posted_ad, deleting_ad, filtering_ad_by_id, saving_created_ad, updating_ad_details
 import os
 from datetime import datetime, timedelta
+import asyncio
 import secrets
 import string
 from sqlalchemy import func, or_, and_
@@ -22,7 +23,7 @@ from createapp import get_app
 from dotenv import load_dotenv
 load_dotenv()
 app = get_app()
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, manage_session=False, logger=True, engineio_logger=True, cors_allowed_origins="*")
 ad = Blueprint('ad', __name__)
 
 
@@ -217,9 +218,9 @@ def create_ad():
     phone = request.form.get("phone")
     email_id = request.form.get("email_id")
     if not category_id:
-        return {"data":{"error": "provide category id"}}, 400
+        return {"data": {"error": "provide category id"}}, 400
     try:
-        category_id=int(category_id)
+        category_id = int(category_id)
     except ValueError:
         return {"data": {"error": "provide category id as integer"}}, 400
     if checking_category_id_exist(category_id) is None:
@@ -317,6 +318,40 @@ def view_ad(page):
     sorts = [Advertisement.is_featured.desc()]
     filter_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.is_disabled == False]
     count_list = [Advertisement.status == "active", Advertisement.is_deleted == False, Advertisement.is_disabled == False]
+
+    if "access_by" in request.args:
+        access_by = request.args.get("access_by")
+        if access_by == "admin":
+            if "Authorization" in request.headers:
+                person = get_jwt_identity()
+                if not User.query.filter(User.id == person).first().is_admin:
+                    return {"data": {"message": "only admin users can view my ads"}}, 401
+                filter_list = [Advertisement.is_disabled == False]
+                count_list = [Advertisement.is_disabled == False]
+                if "sort" in request.args:
+                    sort = request.args["sort"]
+                    if sort == "active":
+                        query = Advertisement.status == "active"
+                        filter_list.append(query)
+                        count_list.append(query)
+                    elif sort == "inactive":
+                        query = Advertisement.status == "inactive"
+                        filter_list.append(query)
+                        count_list.append(query)
+                    elif sort == "reported":
+                        filtering_reported_ad = db.session.query(ReportAd.ad_id, func.count(ReportAd.updated_at).label('counts_of_report'), func.max(ReportAd.updated_at)).group_by(ReportAd.ad_id).order_by(func.max(ReportAd.updated_at).desc()).all()
+                        ad_id_list = []
+                        for each_row in filtering_reported_ad:
+                            if each_row and each_row.counts_of_report >= app.config['COUNT_OF_REPORTS']:
+                                ad_id_list.append(each_row.ad_id)
+                        filter_list.append(Advertisement.id.in_(ad_id_list))
+                        count_list.append(Advertisement.id.in_(ad_id_list))
+
+                    else:
+                        filter_list = filter_list
+                        count_list = count_list
+            else:
+                return {"data": {"message": "only authenticated users can view my ads"}}, 401
 
     if "type_of" in request.args:
         type_of = request.args["type_of"]
@@ -607,7 +642,7 @@ def details_of_ad(ad_id):
             is_liked = True
         if Advertisement.query.filter(Advertisement.id == ad_id, Advertisement.user_id == person).first():
             created_by_me = True
-    return returning_ad_detail(image_list, ad_id, is_liked,created_by_me)
+    return returning_ad_detail(image_list, ad_id, is_liked, created_by_me)
 
 
 def filtering_user_created_ad(ad_id):
@@ -763,11 +798,12 @@ def removing_ad_from_favourite(person, ad_id):
     ads = Advertisement.query.filter(Advertisement.id == ad_id).first()
     owner_id = ads.user_id
     db.session.delete(checking_user_favourited_ad(person, ad_id))
+    db.session.commit()
     if person != owner_id:
         notification = Notification.query.filter(Notification.receiver_id == owner_id, Notification.ad_id == ad_id).first()
         db.session.delete(notification)
         db.session.commit()
-    return {"data": {"message": "ad removed from favourites"}}, 200
+    return {"data": {"message": "ad removed from favourites", "ad_id": ad_id}}, 200
 
 
 def saving_ad_to_favourite(favourite, ad_id, person):
@@ -919,15 +955,15 @@ def get_count_of_the_notification():
     return {"data": {'message': notifications}}
 
 
-@socketio.on('join_room', namespace='/notification')
-def connect_handler(data):
-    print(data)
-    user_room = data.get('username')
-    if user_room:
-        join_room(str(user_room))
-        emit('response', {'message': 'user connected'})
-    else:
-        emit('error', {'message': 'message not found'})
+# @socketio.on('join_room', namespace='/notification')
+# def connect_handler(data):
+#     print(data)
+#     user_room = data.get('username')
+#     if user_room:
+#         join_room(str(user_room))
+#         emit('response', {'message': 'user connected'})
+#     else:
+#         emit('error', {'message': 'message not found'})
 
 
 @ad.route('/create_room', methods=['GET'])
@@ -1028,7 +1064,6 @@ def list_a_chat(page):
 
 @socketio.on('joined', namespace='/chat')
 def joined(data):
-    print("joined")
     room = data.get("room_id")
     print(room)
     join_room(room)
@@ -1040,12 +1075,6 @@ def left(data):
     room = data.get('room_id')
     username = data.get('username')
     print({"data": data})
-    sender_id = User.query.filter(User.username == username).first().id
-    all_unread_messages_in_chatroom = Message.query.filter(Message.chatroom_id == room, Message.is_read == False, Message.receiver_id == sender_id).all()
-    for message in all_unread_messages_in_chatroom:
-        message.is_read = True
-        db.session.add(message)
-        db.session.commit()
     emit('status', {'message': f'User left the room'}, room=room)
 
 
@@ -1113,6 +1142,7 @@ def handle_message_reactions(data):
     receivers_name = User.query.filter(User.id == other_user).first().username
     emit('receive_reactions', {'chatroom_id': chatroom_id, "sender_name": username, "message_id": message_id, 'sender_id': sender_id, 'content': react_messages.content}, room=chatroom_id)
 
+
 @socketio.on('typing', namespace='/chat')
 def handle_send_message(data):
     print("typing")
@@ -1172,32 +1202,32 @@ def popular_locations():
     return {"data": {"message": popular_location_list}}
 
 
-@socketio.on('chat', namespace='/notification')
-def connect_handler(data):
-    user = data.get('username')
-    chatroom_id = data.get('chatroom_id')
-    content = data.get('content')
-    print(data)
-    print({"chat": user})
-    if user is None:
-        emit('notification_response',{'message': 'message', 'count': "username is None", 'notification': "new_message"}, room=user)
-    else:
-        sender_id = User.query.filter(User.username == user).first().id
-        all_unread_messages_in_chatroom = Message.query.filter(Message.chatroom_id == chatroom_id, Message.is_read == False, Message.receiver_id == sender_id).all()
-        for message in all_unread_messages_in_chatroom:
-            message.is_read = True
-            db.session.add(message)
-            db.session.commit()
-        print({"username": user, "chat": True})
-        chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
-        other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
-        receivers_name = User.query.filter(User.id == other_user).first().username
-        # count_current_user = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == sender_id, Message.is_read == False).group_by(Message.chatroom_id).count()
-        # count_other_user = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == other_user, Message.is_read == False).group_by(Message.chatroom_id).count()
-        emit('notification_response', {'message': 'message', 'count': "count_current_user", 'notification': "new_message"}
-             , room=user)
-        emit('notification_response', {'message': 'message', 'count': "count_other_user", 'notification': "new_message"}
-             , room=receivers_name)
+# @socketio.on('chat', namespace='/notification')
+# def connect_handler(data):
+#     user = data.get('username')
+#     chatroom_id = data.get('chatroom_id')
+#     content = data.get('content')
+#     print(data)
+#     print({"chat": user})
+#     if user is None:
+#         emit('notification_response',{'message': 'message', 'count': "username is None", 'notification': "new_message"}, room=user)
+#     else:
+#         sender_id = User.query.filter(User.username == user).first().id
+#         all_unread_messages_in_chatroom = Message.query.filter(Message.chatroom_id == chatroom_id, Message.is_read == False, Message.receiver_id == sender_id).all()
+#         for message in all_unread_messages_in_chatroom:
+#             message.is_read = True
+#             db.session.add(message)
+#             db.session.commit()
+#         print({"username": user, "chat": True})
+#         chatroom = Chatroom.query.filter(Chatroom.id == int(chatroom_id)).first()
+#         other_user = chatroom.user_a if chatroom.user_a != sender_id else chatroom.user_b
+#         receivers_name = User.query.filter(User.id == other_user).first().username
+#         # count_current_user = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == sender_id, Message.is_read == False).group_by(Message.chatroom_id).count()
+#         # count_other_user = db.session.query(Message.chatroom_id, func.count(Message.content)).filter(Message.receiver_id == other_user, Message.is_read == False).group_by(Message.chatroom_id).count()
+#         # emit('notification_response', {'message': 'message', 'count': "count_current_user", 'notification': "new_message"}
+#         #      , room=user)
+#         emit('notification_response', {'message': 'message', 'count': "count_other_user", 'notification': "new_message"}
+#              , room=receivers_name)
 
 
 # @socketio.on('read_message', namespace='/chat')
@@ -1284,6 +1314,48 @@ def viewing_reported_ad(page):
         return {"data": {"message": reported_list, "count": number_of_ads}}, 200
     else:
         return {"data": {"message": "only admin can access this route"}}
+
+
+@ad.route('/remove_reported_ad/<int:ad_id>', methods=['DELETE'])
+@jwt_required()
+def remove_reported_ad(ad_id):
+    person = get_jwt_identity()
+    user = User.query.filter(User.id == person).first()
+    if user.is_admin is True:
+        if filtering_ad_by_id(ad_id):
+            filtering_ad_by_id(ad_id).is_disabled = True
+            db.session.add(filtering_ad_by_id(ad_id))
+            db.session.commit()
+            return {"data": {"message": "ad removed", "ad_id": ad_id}}, 200
+        return {"data": {"message": "ad not found"}}, 200
+    return {"data": {"message": "only admin can access this route"}}, 400
+
+
+# @ad.route("/ad_plan/<int:plan_id>", methods=["GET", "PUT", "DELETE"])
+# @jwt_required()
+# def ad_plan(plan_id):
+#     person = get_jwt_identity()
+#     user = User.query.filter(User.id == person).first()
+#     if user.is_admin != True:
+#         return {"data": {"message": "only admin can access this route"}}, 400
+#     adv_plan = AdPlan.query.filter_by(id=plan_id).first()
+#     if request.method == "PUT":
+#         try:
+#             price = request.get_json()['price']
+#             days = request.get_json()['days']
+#         except KeyError:
+#             return {"data": {"message": "provide all keys"}}, 200
+#         adv_plan.price = price
+#         adv_plan.days = days
+#         db.session.add(adv_plan)
+#         db.session.commit()
+#         return {"data": {"message": "ad plan updated successfully"}}, 200
+#
+#     if request.method == "DELETE":
+#         db.session.delete(adv_plan)
+#         db.session.commit()
+#         return {"data": {"message": "ad plan deleted successfully"}}, 200
+
 
 
 

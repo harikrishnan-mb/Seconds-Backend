@@ -6,7 +6,8 @@ from flask_cors import CORS
 from advertisement import register_ad_blueprint
 from dotenv import load_dotenv
 import os
-from flasgger import Swagger, swag_from
+import asyncio
+from flasgger import Swagger
 
 load_dotenv()
 app = get_app()
@@ -23,5 +24,5 @@ with app.app_context():
 CORS(app)
 
 if __name__ == '__main__':
-    socketio.run(app, host=os.getenv("HOST"), port=int(os.getenv("PORT")), allow_unsafe_werkzeug=True)
+    asyncio.run(socketio.run(app, host=os.getenv("HOST"), port=int(os.getenv("PORT"))))
 

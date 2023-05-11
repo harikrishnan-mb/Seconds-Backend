@@ -10,7 +10,7 @@ def get_app():
     global app
     if not app:
         app = Flask(__name__)
-        app.config['DEBUG'] = False
+        app.config['DEBUG'] = True
         app.config['TESTING'] = False
         app.config['SECRET_KEY'] = "secret"
         app.config['SQLALCHEMY_ECHO'] = False
@@ -22,6 +22,7 @@ def get_app():
         app.config['UPLOAD_AD_PICTURE'] = 'static/images_ad'
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(weeks=0.5)
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
+        app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
         app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE')
         app.config['S3_BUCKET'] = os.getenv('S3_BUCKET_NAME')
         app.config['S3_KEY'] = os.getenv("AWS_ACCESS_KEY")

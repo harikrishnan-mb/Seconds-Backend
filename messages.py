@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ErrorCodes(Enum):
     username_does_not_exist={'msg': "username does not exist", 'code':1001}
     provide_password={'msg': "provide password", 'code':1002}

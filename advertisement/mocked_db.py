@@ -41,7 +41,7 @@ def get_only_categories(categories_list):
         if os.getenv('ENV') == 'PRODUCTION':
             category_name = {"id": category.id, "name": category.name, "images": app.config['S3_LOCATION'] + category.image}
         categories_list.append(category_name)
-    return{"data": {"message": categories_list}}, 200
+    return {"data": {"message": categories_list}}, 200
 
 
 def admin_is_true(person):
@@ -148,9 +148,8 @@ def saving_created_ad(title, description, category_id, status, seller_type, pric
             session.rollback()
             session.close()
             return {"data": {"error": "error uploading image"}}, 400
-        else:
-            session.commit()
-            return {"data": {"message": "ad created"}}, 200
+        session.commit()
+        return {"data": {"message": "ad created"}}, 200
 
 
 def listing_the_ad(filter_list, sorts, list_ad, page, count_list):

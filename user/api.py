@@ -161,7 +161,8 @@ def checking_userpassword(username, password):
         current_user = username
         return {"data": {"message": "Login successful"},"tokens": {"access_token": access_token,
                                                                    "refresh_token": refresh_token},
-                "username": current_user}, 200
+                "username": current_user,
+                "is_admin": user_in.is_admin}, 200
 
 
 @user.route('/refresh', methods=["GET"])
@@ -326,7 +327,8 @@ def displaying_user_profile(user_id):
                                       "email_id": filter_user(user_id).email, "phone": user_profile.phone,
                                       "address": user_profile.address}]}}, 200
     if os.getenv('ENV') == 'DEVELOPMENT':
-        return {"data": {"message": [{"name": user_profile.name, "photo": os.getenv('HOME_ROUTE') + user_profile.photo,
+        return {"data": {"message": [{"is_admin": filter_user(user_id).is_admin, "name": user_profile.name,
+                                      "photo": os.getenv('HOME_ROUTE') + user_profile.photo,
                                       "username": filter_user(user_id).username,
                                       "email_id": filter_user(user_id).email, "phone": user_profile.phone,
                                       "address": user_profile.address}]}}, 200

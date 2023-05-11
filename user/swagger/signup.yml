@@ -15,23 +15,6 @@ paths:
   /user/signup:
     post:
       summary: Create a new user account
-      descriptionswagger: '2.0'
-info:
-  title: Example API
-  description: An example API
-  version: '1.0'
-host: example.com
-basePath: /
-schemes:
-  - https
-consumes:
-  - application/json
-produces:
-  - application/json
-paths:
-  /user/signup:
-    post:
-      summary: Create a new user account
       description: Creates a new user account with the provided credentials
       parameters: []
       requestBody:
