@@ -1,8 +1,10 @@
 from flask import request, Blueprint
 from messages import ErrorCodes
 from createapp import get_app
+from datetime import datetime, timedelta
 import re
 from flask_mail import Mail, Message
+from .validations import generate_otp
 import os
 from user.models import User, UserProfile
 from user.models import db
@@ -15,7 +17,6 @@ from dotenv import load_dotenv
 from bcrypt import checkpw
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required,get_jwt, verify_jwt_in_request
 from flask_jwt_extended import JWTManager
-
 from flasgger import Swagger, swag_from
 load_dotenv
 user = Blueprint('user', __name__)
@@ -24,7 +25,7 @@ mail = Mail(app)
 jwt = JWTManager(app)
 
 
-@swag_from('swagger/signup.yml')
+# @swag_from('swagger/signup.yml')
 @user.route('/signup', methods=['POST'])
 def signup():
     try:
@@ -32,6 +33,15 @@ def signup():
         email_id = data['email_id']
         username = data['username']
         password = data['password']
+        inactive_users = User.query.filter((User.email == email_id or User.username == username) and (User.is_active == False)).all()
+        print(inactive_users)
+        for each_user in inactive_users:
+            print((each_user.created_at > datetime.now()-timedelta(minutes=5)))
+            print(datetime.now())
+            if each_user.created_at < datetime.now()-timedelta(minutes=5):
+                print("hi")
+                db.session.delete(each_user)
+                db.session.commit()
         if not email_id:
             return {"data": {"error": ErrorCodes.email_cannot_be_empty.value["msg"], "error_id": ErrorCodes.email_cannot_be_empty.value["code"]}}, 400
         if not username:
@@ -56,7 +66,8 @@ def signup():
 
 def send_message(users):
     msg = Message('OTP Validation', sender='seconds.clone@gmail.com', recipients=[users.email])
-    msg.body = 'Welcome'
+    otp = users.otp
+    msg.body = f'Welcome to Seconds,\n THe otp for signin is {otp}'
     mail.send(msg)
 
 
@@ -69,14 +80,14 @@ def checking_mail_exist(email_id):
 
 
 def saving_user_to_db(username, email_id, password):
-    user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False)
+    user_1 = User(username=username, email=email_id, hashed_password=hashing_password(password), is_admin=False, otp=generate_otp(), is_active=False)
     db.session.add(user_1)
     db.session.commit()
     profile_1 = UserProfile(None, None, None, photo='static/profile/profile.jpg', user_id=user_1.id)
     db.session.add(profile_1)
     db.session.commit()
     send_message(user_1)
-    return {"data": {"message": "user created"}}, 200
+    return {"data": {"message": "Otp ssend to the email"}}, 200
 
 
 def hashing_password(password):
@@ -124,6 +135,27 @@ def check_username(username):
         return True
     else:
         return False
+
+
+@user.route('/verify_otp', methods=['POST'])
+def verify_otp():
+    data = request.get_json()
+    email_id = data['email_id']
+    otp = data['otp']
+    user_a = User.query.filter(User.email == email_id).first()
+    if not user_a:
+        return {"data": {"error": "otp time out"}}, 400
+    otp_send = user_a.otp
+    if otp_send == otp:
+        if user_a.created_at <= datetime.now() - timedelta(minutes=5):
+            user_a.is_active=True
+            db.session.add(user_a)
+            db.session.commit()
+        else:
+            return {"data": {"error": "otp timed out"}}, 400
+        return {"data": {"message": "Login successful"}}, 200
+    else:
+        return {"data": {"error": "otp verification failed"}}, 400
 
 
 @user.route('/login', methods=['POST'])
@@ -249,10 +281,10 @@ def allowed_profile_image_file(filename):
 @user.route('/update_profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
-    user_id=get_jwt_identity()
-    photo=request.files.get('photo')
-    name=request.form.get('name')
-    email_id=request.form.get('email_id')
+    user_id = get_jwt_identity()
+    photo = request.files.get('photo')
+    name = request.form.get('name')
+    email_id = request.form.get('email_id')
     phone = request.form.get('phone')
     address = request.form.get('address')
     if not name:

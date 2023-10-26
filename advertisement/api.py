@@ -2,8 +2,9 @@ from flask import Blueprint, request
 from s3config import s3
 from advertisement.models import db, Category, Advertisement, AdImage, AdPlan, FavouriteAd, ReportAd, Message,\
     Notification, Chatroom,MessageReactions
-from user.api import check_email, check_phone
+from user.api import check_email, check_phone, mail
 from user.models import User, UserProfile
+from flask_mail import Mail, Message
 from user.api import get_jwt_identity, jwt_required, verify_jwt_in_request
 from geoalchemy2 import WKTElement
 from messages import ErrorCodes
@@ -17,10 +18,12 @@ from datetime import datetime, timedelta
 import asyncio
 import secrets
 import string
+import threading
 from sqlalchemy import func, or_, and_
 from werkzeug.utils import secure_filename
 from createapp import get_app
 from dotenv import load_dotenv
+from .task import checking_if_featured_ad_expired
 load_dotenv()
 app = get_app()
 socketio = SocketIO(app, manage_session=False, logger=True, engineio_logger=True, cors_allowed_origins="*")
@@ -299,7 +302,7 @@ def create_ad():
         return {"data": {"error": "provide valid email"}}, 400
     geo = WKTElement('POINT({} {})'.format(str(longitude), str(latitude)))
 
-    return saving_created_ad(title, description, category_id, status, seller_type, price, ad_plan_id,
+    return saving_created_ad(person, title, description, category_id, status, seller_type, price, ad_plan_id,
                              negotiable_product, feature_product, location, latitude, longitude, seller_name, phone,
                              email_id, images, geo)
 
@@ -478,13 +481,14 @@ def searching_the_ad(search_lists, filter_list, count_list):
 
 
 def listing_the_ad(filter_list, sorts, list_ad, page, count_list):
-    adv = Advertisement.query.filter_by(is_featured=True).all()
-    for ads in adv:
-        plan = AdPlan.query.filter_by(id=ads.advertising_plan_id).first()
-        if datetime.now()-ads.created_at > timedelta(days=plan.days):
-            ads.is_featured = False
-            db.session.add(ads)
-            db.session.commit()
+    # adv = Advertisement.query.filter_by(is_featured=True).all()
+    # for ads in adv:
+    #     plan = AdPlan.query.filter_by(id=ads.advertising_plan_id).first()
+    #     if datetime.now()-ads.created_at > timedelta(days=plan.days):
+    #         ads.is_featured = False
+    #         db.session.add(ads)
+    #         db.session.commit()
+    checking_if_featured_ad_expired.delay()
     count_of_price_range_0_to_1_lakh = Advertisement.query.filter(*count_list, and_(Advertisement.price >= 0, Advertisement.price < 100000)).count()
     count_of_price_range_1_to_3_lakh = Advertisement.query.filter(*count_list, and_(Advertisement.price >= 100000, Advertisement.price < 300000)).count()
     count_of_price_range_3_to_6_lakh = Advertisement.query.filter(*count_list, and_(Advertisement.price >= 300000, Advertisement.price < 600000)).count()

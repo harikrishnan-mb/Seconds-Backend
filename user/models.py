@@ -10,6 +10,8 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     hashed_password = db.Column(db.Text, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    is_active = db.Column(db.Boolean, default=False)
+    otp = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -21,11 +23,13 @@ class User(db.Model):
     # notification = db.relationship('Notification', backref='user')
     # receiver = db.relationship('Message', backref='user')
 
-    def __init__(self, username, email, hashed_password, is_admin):
+    def __init__(self, username, email, hashed_password, is_admin, otp, is_active):
         self.username = username
         self.email = email
         self.hashed_password = hashed_password
         self.is_admin = is_admin
+        self.otp = otp
+        self.is_active = is_active
 
     def __str__(self):
         return f"User with {self.username} created"

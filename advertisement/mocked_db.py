@@ -5,11 +5,13 @@ import os
 from flask import request
 from s3config import s3
 import secrets
+from flask_mail import Message
 import string
+from .task import send_ad_creation_email
 from werkzeug.utils import secure_filename
 from createapp import get_app
 from sqlalchemy import create_engine
-from user.api import get_jwt_identity, verify_jwt_in_request
+from user.api import get_jwt_identity, verify_jwt_in_request, mail
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_, and_
 app = get_app()
@@ -111,11 +113,18 @@ def filtering_ad_by_id(del_ad_id):
     return Advertisement.query.filter_by(id=del_ad_id).first()
 
 
+# def send_ad_creation_email(email_of_user, title):
+#     msg = Message('Advertisement created', sender='seconds.clone@gmail.com', recipients=[email_of_user])
+#     msg.body = f'Advertisement titled "{title}" created successfully'  # This will be shown if the email client does not support HTML
+#     msg.html = f'<p style="color: blue;">Advertisement titled "{title}" created successfully</p>'  # HTML content with a blue heading
+#     mail.send(msg)
+
+
 def generate_random_text():
     return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for i in range(14))
 
 
-def saving_created_ad(title, description, category_id, status, seller_type, price, ad_plan_id, negotiable_product,
+def saving_created_ad(person, title, description, category_id, status, seller_type, price, ad_plan_id, negotiable_product,
                       feature_product, location, latitude, longitude, seller_name, phone, email_id, images, geo):
     with Session(engine) as session:
         session.begin()
@@ -149,6 +158,7 @@ def saving_created_ad(title, description, category_id, status, seller_type, pric
             session.close()
             return {"data": {"error": "error uploading image"}}, 400
         session.commit()
+        send_ad_creation_email.delay(email_id, title)
         return {"data": {"message": "ad created"}}, 200
 
 
